@@ -1467,3 +1467,16 @@ Seluruh halaman publik sudah bersih sejak awal.
 ### Hasil testing
 
 php artisan test: 285 passed (1439 assertions). 8 test baru di AdminUserManagementTest: tambah freelancer lalu bisa login, validasi, ubah peran + reset password + audit tanpa password, password kosong tidak mengubah password, unggah/hapus foto, tidak bisa mencabut admin sendiri, non-admin 403, aksi tersedia di tabel (tanpa hapus). Browser: halaman Ubah Pengguna tampil lengkap.
+
+---
+
+## Tambahan — Batas Upload Lebih Besar dan Foto Diperkecil Otomatis
+
+**Tanggal pengerjaan:** 5 November 2026 (atas persetujuan pengguna)
+**Branch:** `upload-lebih-besar`, di-merge ke `master`
+
+- php.ini (`C:\php\8.4\php.ini`, backup `php.ini.bak-upload`): `upload_max_filesize = 20M`, `post_max_size = 25M`. Server dev dijalankan ulang dan terverifikasi memakai 20M/25M.
+- Foto profil: batas 1 MB naik menjadi **5 MB** (halaman Profil dan panel admin). Setiap foto dipotong persegi dari tengah dan diperkecil menjadi **512×512 WebP** (`App\Support\AvatarImage`, GD), sehingga foto kamera beberapa MB disimpan sekitar puluhan KB. File asli tidak disimpan.
+- File hasil pekerjaan: `.env` lokal `CREATIVEHUB_DELIVERY_MAX_KB=20480` (20 MB). `.env.example` tetap 2048 agar aman untuk PHP bawaan; cara menaikkannya dijelaskan di README.
+- Halaman error **413 (File terlalu besar)** berbahasa Indonesia untuk upload yang melewati batas PHP.
+- Test: 286 passed (test baru: foto 4000×3000 ±4 MB diterima lalu tersimpan 512×512 WebP; file di atas 5 MB ditolak).

@@ -114,6 +114,15 @@ vendor/bin/pint --test  # gaya kode
 | `CREATIVEHUB_COMMISSION_BPS` | `1000` | Komisi default (basis poin, 1000 = 10%). Admin bisa mengubahnya di panel. |
 | `CREATIVEHUB_DELIVERY_MAX_KB` | `2048` | Ukuran maksimal file hasil. Harus ≤ `upload_max_filesize` dan `post_max_size` PHP. Untuk file besar, gunakan tautan (misalnya Google Drive). |
 
+**Upload file besar.** Foto profil diterima hingga **5 MB** lalu otomatis diperkecil menjadi 512×512 WebP. Untuk mengizinkan upload di atas 2 MB, atur `php.ini`:
+
+```ini
+upload_max_filesize = 20M
+post_max_size = 25M
+```
+
+Setelah itu jalankan ulang `php artisan serve`, lalu isi `CREATIVEHUB_DELIVERY_MAX_KB=20480` di `.env` agar file hasil pekerjaan bisa sampai 20 MB.
+
 ## Batasan MVP
 
 Tidak termasuk: hosting/deployment, pembayaran dan payout sungguhan, escrow, aplikasi mobile, chat real-time (memakai polling HTTP), multi-currency, dan sistem sengketa. Arsitektur `PaymentGateway` sudah siap bila integrasi provider sungguhan (misalnya Midtrans) dibutuhkan kemudian.

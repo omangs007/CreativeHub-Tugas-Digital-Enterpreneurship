@@ -6,6 +6,7 @@ use App\Enums\RoleName;
 use App\Filament\Resources\Users\Pages\CreateUser;
 use App\Filament\Resources\Users\Pages\EditUser;
 use App\Filament\Resources\Users\Pages\ListUsers;
+use App\Http\Controllers\AvatarController;
 use App\Models\User;
 use App\Support\AuditLogger;
 use BackedEnum;
@@ -74,8 +75,8 @@ class UserResource extends Resource
                     ->directory(fn (?User $record) => 'avatars/'.($record?->id ?? 'baru'))
                     ->visibility('public')
                     ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])
-                    ->maxSize(1024)
-                    ->helperText('JPG, PNG, atau WebP, maksimal 1 MB. Kosongkan untuk memakai inisial nama.'),
+                    ->maxSize(AvatarController::MAX_KB)
+                    ->helperText('JPG, PNG, atau WebP, maksimal 5 MB. Foto otomatis diperkecil. Kosongkan untuk memakai inisial nama.'),
             ]),
             Section::make('Password')->schema([
                 TextInput::make('password')

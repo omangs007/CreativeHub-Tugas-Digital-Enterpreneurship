@@ -1,7 +1,7 @@
 <section>
     <header>
         <h2 class="text-lg font-medium text-gray-900">{{ __('Foto Profil') }}</h2>
-        <p class="mt-1 text-sm text-gray-600">{{ __('Tampil di profil freelancer, layanan, penawaran, dan chat. JPG, PNG, atau WebP, maksimal 1 MB.') }}</p>
+        <p class="mt-1 text-sm text-gray-600">{{ __('Tampil di profil freelancer, layanan, penawaran, dan chat. JPG, PNG, atau WebP, maksimal 5 MB. Foto otomatis diperkecil.') }}</p>
     </header>
 
     <div class="mt-6 flex flex-wrap items-center gap-6">

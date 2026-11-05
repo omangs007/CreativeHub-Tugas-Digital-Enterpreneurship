@@ -57,13 +57,28 @@ class AvatarAndChartTest extends TestCase
         foreach ([
             UploadedFile::fake()->create('logo.svg', 5, 'image/svg+xml'),
             UploadedFile::fake()->image('kecil.png', 50, 50),
-            UploadedFile::fake()->image('besar.jpg', 400, 400)->size(1500),
+            UploadedFile::fake()->image('besar.jpg', 400, 400)->size(5200),
             UploadedFile::fake()->create('cv.pdf', 50, 'application/pdf'),
         ] as $file) {
             $this->actingAs($user)->post('/profile/avatar', ['avatar' => $file])->assertSessionHasErrorsIn('avatar', 'avatar');
         }
 
         $this->assertNull($user->fresh()->avatar_path);
+    }
+
+    public function test_large_photo_is_accepted_and_resized_to_512_webp(): void
+    {
+        $user = User::factory()->customer()->create();
+        // Foto kamera besar (4000×3000, ±4 MB) diterima lalu diperkecil.
+        $photo = UploadedFile::fake()->image('kamera.jpg', 4000, 3000)->size(4096);
+
+        $this->actingAs($user)->post('/profile/avatar', ['avatar' => $photo])->assertSessionHasNoErrors();
+
+        $path = $user->fresh()->avatar_path;
+        $this->assertStringEndsWith('.webp', $path);
+        [$width, $height] = getimagesizefromstring(Storage::disk('public')->get($path));
+        $this->assertSame([512, 512], [$width, $height]);
+        $this->assertCount(1, Storage::disk('public')->files("avatars/{$user->id}"));
     }
 
     public function test_avatar_cannot_be_set_through_profile_update(): void

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\AvatarImage;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Redirect;
@@ -14,16 +15,21 @@ class AvatarController extends Controller
 {
     private const DISK = 'public';
 
+    /** Ukuran maksimal foto yang diunggah (KB); harus <= upload_max_filesize PHP. */
+    public const MAX_KB = 5120;
+
     public function update(Request $request): RedirectResponse
     {
         $request->validateWithBag('avatar', [
-            'avatar' => ['required', 'file', 'mimes:jpg,jpeg,png,webp', 'max:1024', 'dimensions:min_width=100,min_height=100,max_width=3000,max_height=3000'],
+            'avatar' => ['required', 'file', 'mimes:jpg,jpeg,png,webp', 'max:'.self::MAX_KB, 'dimensions:min_width=100,min_height=100,max_width=8000,max_height=8000'],
         ], [], ['avatar' => 'foto profil']);
 
         $user = $request->user();
         $old = $user->avatar_path;
 
-        $user->avatar_path = $request->file('avatar')->store("avatars/{$user->id}", self::DISK);
+        // Foto besar diperkecil otomatis menjadi 512×512 WebP.
+        $stored = $request->file('avatar')->store("avatars/{$user->id}", self::DISK);
+        $user->avatar_path = AvatarImage::normalize($stored, $user->id);
         $user->save();
 
         if ($old) {

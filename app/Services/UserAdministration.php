@@ -6,6 +6,7 @@ use App\Enums\RoleName;
 use App\Models\Role;
 use App\Models\User;
 use App\Support\AuditLogger;
+use App\Support\AvatarImage;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
@@ -31,9 +32,11 @@ class UserAdministration
                 'email' => $data['email'],
                 'password' => $data['password'],
             ]);
+            $avatar = $data['avatar_path'] ?? null;
+
             $user->forceFill([
                 'email_verified_at' => now(),
-                'avatar_path' => $data['avatar_path'] ?? null,
+                'avatar_path' => $avatar ? AvatarImage::normalize($avatar, $user->id) : null,
             ])->save();
 
             $this->syncRoles($user, $roles);
@@ -65,6 +68,11 @@ class UserAdministration
 
         $oldAvatar = $user->avatar_path;
         $newAvatar = $data['avatar_path'] ?? null;
+
+        // Foto baru (berbeda dari yang tersimpan) diperkecil menjadi 512×512 WebP.
+        if ($newAvatar && $newAvatar !== $oldAvatar) {
+            $newAvatar = AvatarImage::normalize($newAvatar, $user->id);
+        }
 
         DB::transaction(function () use ($user, $data, $roles, $admin, $oldAvatar, $newAvatar) {
             $old = [
