@@ -1445,6 +1445,6 @@ Seluruh halaman publik sudah bersih sejak awal.
 | Area | Jumlah |
 |---|---|
 | Commit hari kerja di `master` | 21 |
-| Migration | 18 file (PostgreSQL, CHECK constraint, unique index parsial, FK) |
+| Migration | 20 file (PostgreSQL, CHECK constraint, unique index parsial, FK) |
 | Test otomatis | 277 (1378 assertions) |
 | Kebutuhan wajib dosen | Pembayaran simulasi ✅ · Struk cetak/PDF ✅ · Laporan keuangan filter + PDF ✅ · ≥ 2 aktor (4 peran) ✅ · Database relasional + seeder ✅ |
