@@ -330,3 +330,117 @@ Pemeriksaan lain:
 3. Halaman publik `/freelancers/{id}`: profil, skills, portofolio, layanan published milik freelancer.
 4. Link ke profil freelancer dari kartu dan detail layanan; bagian "Freelancer unggulan" di homepage dari data nyata.
 5. Feature test: hanya pemilik yang bisa mengubah profil dan portofolio, validasi upload, dan halaman publik tidak menampilkan layanan draf.
+
+---
+
+## Hari 3 — Profil Freelancer & Portofolio
+
+**Tanggal pengerjaan:** 5 November 2026
+**Branch:** `hari-3-profil-portofolio`, di-merge ke `master`
+**Status:** Selesai dan disetujui (5 November 2026)
+
+### Fitur yang dikerjakan
+
+- **Database:** tabel `portfolio_items`:
+  - FK `user_id` cascade, `category_id` nullable dengan `nullOnDelete`.
+  - Kolom `title`, `description`, `image_path`, `project_url`.
+  - Index `(user_id, created_at)`.
+- **Edit profil freelancer** (`/dashboard/freelancer-profile`, middleware `role:freelancer` + `FreelancerProfilePolicy::update`):
+  - Headline, bio, status ketersediaan (enum), tautan portofolio eksternal (hanya `http/https`).
+  - Keahlian diisi sebagai teks dipisah koma, lalu dirapikan, dibuat unik (tanpa membedakan huruf besar/kecil), maksimal 10.
+  - Kolom `user_id` tidak bisa diubah dari form.
+- **Portofolio** (`/dashboard/portfolio`, CRUD tanpa halaman show):
+  - Upload JPG/PNG/WebP maksimal 2 MB dan 5000×5000 px; **SVG ditolak** karena bisa memuat script.
+  - Nama file dibuat acak oleh server di `storage/app/public/portfolio/{user_id}/`; nama asli dari browser tidak dipakai.
+  - Maksimal 12 item per freelancer, dicek di dalam transaksi dengan row lock.
+  - Mengganti gambar akan menghapus file lama; menghapus item ikut menghapus filenya.
+  - `PortfolioItemPolicy`: hanya pemilik yang bisa edit/hapus. `user_id` dan `image_path` tidak fillable.
+  - Kategori opsional, hanya kategori aktif.
+- **Profil publik** `/freelancers/{id}`:
+  - Menampilkan nama, headline, status ketersediaan, tanggal bergabung, bio, keahlian, layanan published, portofolio, dan empty state.
+  - Email tidak ditampilkan.
+  - 404 untuk user yang bukan freelancer (customer/admin), ID tidak dikenal, atau ID bukan angka.
+  - Tautan eksternal memakai `rel="noopener noreferrer nofollow"`.
+- **Integrasi:**
+  - Nama freelancer di detail layanan menautkan ke profil publik.
+  - Bagian **Freelancer unggulan** di homepage: 4 freelancer dengan layanan aktif terbanyak (data nyata, tanpa rating palsu).
+  - Navigasi dashboard menampilkan "Profil Freelancer" dan "Portofolio" untuk freelancer; halaman Profil menautkan ke pengelolaan profil freelancer.
+  - Komponen `<x-avatar>` untuk avatar inisial.
+- **Data demo:** `CatalogDemoSeeder` menambahkan 2 portofolio per freelancer. Gambar placeholder PNG dibuat dengan GD, tanpa unduhan internet. Seeder tetap idempoten.
+- **Setup:** `php artisan storage:link`. `public/storage` sudah ada di `.gitignore`, dan file upload ada di `storage/app/public` yang di-ignore.
+
+### File yang dibuat atau diubah
+
+```text
+database/migrations/2026_11_05_000006_create_portfolio_items_table.php
+database/factories/PortfolioItemFactory.php
+database/seeders/CatalogDemoSeeder.php       (portofolio demo + gambar placeholder GD)
+app/Models/PortfolioItem.php
+app/Models/User.php                          (portfolioItems, scope publicFreelancers)
+app/Policies/PortfolioItemPolicy.php
+app/Http/Requests/FreelancerProfileUpdateRequest.php
+app/Http/Requests/PortfolioItemRequest.php
+app/Http/Controllers/FreelancerProfileController.php   (edit, update, show publik)
+app/Http/Controllers/PortfolioController.php
+app/Http/Controllers/HomeController.php      (freelancer unggulan)
+app/Http/Controllers/ServiceController.php   (eager load roles freelancer)
+routes/web.php
+resources/views/freelancer/profile-edit.blade.php
+resources/views/freelancer/portfolio/index.blade.php, edit.blade.php, _form.blade.php
+resources/views/freelancers/show.blade.php
+resources/views/components/avatar.blade.php
+resources/views/home.blade.php, services/show.blade.php
+resources/views/layouts/navigation.blade.php, profile/partials/account-roles.blade.php
+tests/Feature/Freelancer/FreelancerProfileEditTest.php
+tests/Feature/Freelancer/PortfolioManagementTest.php
+tests/Feature/Freelancer/FreelancerPublicProfileTest.php
+tests/Feature/Catalog/CatalogDatabaseTest.php   (assert portofolio demo)
+```
+
+### Command yang dijalankan
+
+```powershell
+git switch -c hari-3-profil-portofolio
+php artisan migrate                      # dicek dulu: DB aktif = creativehub
+php artisan storage:link
+php artisan db:seed --class=CatalogDemoSeeder   # tidak ada akun baru, password demo tidak berubah
+vendor/bin/pint
+npm run build
+php artisan test
+```
+
+### Hasil testing
+
+`php artisan test` (5 November 2026): **92 passed (284 assertions)**. Isinya 71 test sebelumnya ditambah 21 test baru:
+
+- `FreelancerProfileEditTest` (6): guest diarahkan ke login, customer 403, form tampil, update berhasil (normalisasi skills, enum, URL), validasi (headline, availability, URL `javascript:`, lebih dari 10 skills), `user_id` tidak bisa diubah.
+- `PortfolioManagementTest` (10): customer 403, halaman portofolio tampil, upload berhasil ke `portfolio/{id}/` dengan nama acak, tolak PDF/SVG/lebih dari 2 MB/tanpa gambar, tolak kategori nonaktif dan URL tidak aman, batas 12 item, ganti gambar menghapus file lama, update tanpa gambar mempertahankan gambar lama, hapus item ikut menghapus file, freelancer lain 403 untuk edit/update/hapus.
+- `FreelancerPublicProfileTest` (5): profil publik (layanan draf dan email tidak tampil), empty state, 404 untuk customer/admin/ID tidak dikenal/bukan angka, link dari detail layanan, freelancer unggulan di homepage.
+
+Pemeriksaan lain:
+
+- `vendor/bin/pint` passed; `npm run build` sukses.
+- HTTP:
+  - `/freelancers/1` → 200; `/freelancers/999` → 404.
+  - `/dashboard/portfolio` dan `/dashboard/freelancer-profile` untuk guest → 302 ke `/login`.
+  - Gambar `/storage/portfolio/...png` → 200 `image/png`.
+- Browser (Playwright, 1366px): profil publik freelancer tampil dengan layanan, portofolio, dan keahlian. Halaman dashboard freelancer belum dicek visual di browser (perlu login akun demo); perilakunya tercakup feature test.
+
+### Error dan solusinya
+
+Tidak ada error berarti. Sebelum `migrate`, nama database aktif diperiksa terlebih dahulu (pelajaran dari Hari 2).
+
+### Pekerjaan yang belum selesai / catatan
+
+- Commit Hari 3 dibuat dan di-merge ke `master` setelah persetujuan.
+- Foto profil (avatar upload) belum ada; memakai avatar inisial.
+- Moderasi portofolio oleh admin belum ada (dijadwalkan bersama moderasi admin).
+- Belum ada pengecekan isi gambar selain MIME, ekstensi, dan dimensi. Untuk MVP lokal ini dianggap cukup.
+
+### Rencana Hari 4 — Layanan dan paket oleh freelancer
+
+1. Dashboard freelancer `/dashboard/services`: daftar layanan milik sendiri beserta statusnya.
+2. Buat dan edit layanan (judul, kategori aktif, deskripsi, thumbnail opsional dengan aturan upload yang sama) dan paket Basic/Standard/Premium (harga Rupiah integer, waktu pengerjaan, revisi, aktif/nonaktif).
+3. Slug unik dibuat server; status awal `draft`. Freelancer dapat mengajukan review (`pending_review`). Publikasi tetap lewat moderasi admin (Hari 5).
+4. `ServicePolicy`: hanya pemilik yang bisa mengubah. Layanan yang sudah published dan diedit kembali ke `pending_review`. Minimal satu paket aktif sebelum diajukan.
+5. Feature test: kepemilikan, validasi harga (integer > 0, batas maksimum), slug unik, draf tidak tampil publik, status tidak bisa dipalsukan dari form.

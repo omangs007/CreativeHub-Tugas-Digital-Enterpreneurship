@@ -46,6 +46,7 @@ class ServiceController extends Controller
             ->with([
                 'category',
                 'freelancer.freelancerProfile',
+                'freelancer.roles',
                 'activePackages',
             ])
             ->firstOrFail();

@@ -20,6 +20,16 @@
                         {{ __('Katalog Jasa') }}
                     </x-nav-link>
 
+                    @if (Auth::user()->hasRole(\App\Enums\RoleName::Freelancer))
+                        <x-nav-link :href="route('freelancer.profile.edit')" :active="request()->routeIs('freelancer.profile.*')">
+                            {{ __('Profil Freelancer') }}
+                        </x-nav-link>
+
+                        <x-nav-link :href="route('portfolio.index')" :active="request()->routeIs('portfolio.*')">
+                            {{ __('Portofolio') }}
+                        </x-nav-link>
+                    @endif
+
                     @if (Auth::user()->isAdmin())
                         <x-nav-link :href="url('/admin')">
                             {{ __('Panel Admin') }}
@@ -84,6 +94,16 @@
             <x-responsive-nav-link :href="route('services.index')" :active="request()->routeIs('services.*')">
                 {{ __('Katalog Jasa') }}
             </x-responsive-nav-link>
+
+            @if (Auth::user()->hasRole(\App\Enums\RoleName::Freelancer))
+                <x-responsive-nav-link :href="route('freelancer.profile.edit')" :active="request()->routeIs('freelancer.profile.*')">
+                    {{ __('Profil Freelancer') }}
+                </x-responsive-nav-link>
+
+                <x-responsive-nav-link :href="route('portfolio.index')" :active="request()->routeIs('portfolio.*')">
+                    {{ __('Portofolio') }}
+                </x-responsive-nav-link>
+            @endif
 
             @if (Auth::user()->isAdmin())
                 <x-responsive-nav-link :href="url('/admin')">

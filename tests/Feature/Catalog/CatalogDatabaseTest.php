@@ -4,6 +4,7 @@ namespace Tests\Feature\Catalog;
 
 use App\Enums\PackageTier;
 use App\Models\Category;
+use App\Models\PortfolioItem;
 use App\Models\Service;
 use App\Models\ServicePackage;
 use App\Models\User;
@@ -12,6 +13,7 @@ use Database\Seeders\CategorySeeder;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class CatalogDatabaseTest extends TestCase
@@ -31,12 +33,16 @@ class CatalogDatabaseTest extends TestCase
 
     public function test_catalog_demo_seeder_is_idempotent_and_keeps_drafts_hidden(): void
     {
+        Storage::fake('public');
+
         $this->seed(CatalogDemoSeeder::class);
         $this->seed(CatalogDemoSeeder::class);
 
         $this->assertSame(3, User::where('email', 'like', '%@'.CatalogDemoSeeder::EMAIL_DOMAIN)->count());
         $this->assertSame(7, Service::count());
         $this->assertSame(6, Service::publiclyVisible()->count());
+        $this->assertSame(6, PortfolioItem::count());
+        PortfolioItem::each(fn (PortfolioItem $item) => Storage::disk('public')->assertExists($item->image_path));
 
         $this->get('/services')->assertOk()->assertDontSee('Desain Logo Minimalis');
     }

@@ -95,6 +95,25 @@
         @endif
     </section>
 
+    {{-- Freelancer unggulan --}}
+    @if ($featuredFreelancers->isNotEmpty())
+        <section class="mx-auto max-w-7xl px-4 pb-16 sm:px-6 lg:px-8">
+            <h2 class="text-2xl font-extrabold tracking-tight sm:text-3xl">{{ __('Freelancer unggulan') }}</h2>
+            <p class="mt-2 text-ink-500">{{ __('Freelancer dengan layanan aktif terbanyak.') }}</p>
+
+            <div class="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+                @foreach ($featuredFreelancers as $freelancer)
+                    <a href="{{ route('freelancers.show', $freelancer) }}" class="group flex flex-col items-center rounded-2xl bg-white p-6 text-center shadow-sm ring-1 ring-ink-100 transition hover:-translate-y-1 hover:shadow-xl hover:shadow-ink-900/10">
+                        <x-avatar :name="$freelancer->name" class="size-16 bg-gradient-to-br from-violet-500 to-electric-500 text-2xl" />
+                        <h3 class="mt-4 font-bold group-hover:text-violet-700">{{ $freelancer->name }}</h3>
+                        <p class="mt-1 line-clamp-2 text-sm text-ink-500">{{ $freelancer->freelancerProfile->headline ?? __('Freelancer CreativeHub') }}</p>
+                        <p class="mt-3 text-xs font-semibold text-violet-600">{{ __(':count layanan aktif', ['count' => $freelancer->published_services_count]) }}</p>
+                    </a>
+                @endforeach
+            </div>
+        </section>
+    @endif
+
     {{-- CTA --}}
     <section class="mx-auto max-w-7xl px-4 pb-20 sm:px-6 lg:px-8">
         <div class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-violet-700 via-indigo-700 to-ink-900 px-6 py-12 text-white sm:px-12">

@@ -7,10 +7,12 @@ use App\Enums\PackageTier;
 use App\Enums\RoleName;
 use App\Enums\ServiceStatus;
 use App\Models\Category;
+use App\Models\PortfolioItem;
 use App\Models\Service;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 /**
@@ -36,6 +38,10 @@ class CatalogDemoSeeder extends Seeder
 
                 foreach ($data['services'] as $serviceData) {
                     $this->demoService($user, $categories[$serviceData['category']], $serviceData);
+                }
+
+                foreach ($data['portfolio'] as $portfolioData) {
+                    $this->demoPortfolioItem($user, $categories[$portfolioData['category']], $portfolioData);
                 }
             }
         });
@@ -104,6 +110,51 @@ class CatalogDemoSeeder extends Seeder
     }
 
     /**
+     * @param  array<string, mixed>  $data
+     */
+    private function demoPortfolioItem(User $user, int $categoryId, array $data): void
+    {
+        $path = "portfolio/{$user->id}/demo-".Str::slug($data['title']).'.png';
+
+        if (! Storage::disk(PortfolioItem::DISK)->exists($path)) {
+            Storage::disk(PortfolioItem::DISK)->put($path, $this->placeholderImage(...$data['colors']));
+        }
+
+        $item = PortfolioItem::firstOrNew(['user_id' => $user->id, 'title' => $data['title']]);
+        $item->fill(['category_id' => $categoryId, 'description' => $data['description']]);
+        $item->image_path = $path;
+        $item->save();
+    }
+
+    /**
+     * Gambar placeholder PNG (gradien + lingkaran) dibuat dengan GD, tanpa unduhan dari internet.
+     */
+    private function placeholderImage(string $from, string $to): string
+    {
+        [$width, $height] = [1200, 900];
+        $image = imagecreatetruecolor($width, $height);
+        [$r1, $g1, $b1] = sscanf($from, '#%02x%02x%02x');
+        [$r2, $g2, $b2] = sscanf($to, '#%02x%02x%02x');
+
+        for ($y = 0; $y < $height; $y++) {
+            $t = $y / $height;
+            $color = imagecolorallocate($image, (int) ($r1 + ($r2 - $r1) * $t), (int) ($g1 + ($g2 - $g1) * $t), (int) ($b1 + ($b2 - $b1) * $t));
+            imageline($image, 0, $y, $width, $y, $color);
+        }
+
+        $white = imagecolorallocatealpha($image, 255, 255, 255, 105);
+        imagefilledellipse($image, 980, 160, 520, 520, $white);
+        imagefilledellipse($image, 180, 820, 640, 640, $white);
+        imagefilledrectangle($image, 380, 300, 820, 600, imagecolorallocatealpha($image, 255, 255, 255, 80));
+
+        ob_start();
+        imagepng($image);
+        imagedestroy($image);
+
+        return (string) ob_get_clean();
+    }
+
+    /**
      * @return list<array<string, mixed>>
      */
     private function freelancers(): array
@@ -115,6 +166,10 @@ class CatalogDemoSeeder extends Seeder
                 'headline' => 'Roblox Map Builder & Scripter',
                 'bio' => "Membangun map Roblox sejak 2021.\nFokus pada obby, tycoon, dan roleplay dengan performa ringan untuk perangkat mobile.",
                 'skills' => ['Roblox Studio', 'Luau', 'Blender'],
+                'portfolio' => [
+                    ['title' => 'Obby Candy Land 40 Stage', 'category' => 'roblox-map', 'description' => 'Map obby bertema permen untuk komunitas Roblox sekolah.', 'colors' => ['#7c3aed', '#1a2040']],
+                    ['title' => 'Tycoon Pabrik Roti', 'category' => 'roblox-map', 'description' => 'Game tycoon dengan sistem upgrade dan leaderboard.', 'colors' => ['#4f46e5', '#10152d']],
+                ],
                 'services' => [
                     [
                         'category' => 'roblox-map',
@@ -146,6 +201,10 @@ class CatalogDemoSeeder extends Seeder
                 'headline' => 'Laravel & Tailwind Web Developer',
                 'bio' => 'Web developer yang membantu UMKM dan organisasi kampus tampil profesional secara online.',
                 'skills' => ['Laravel', 'Tailwind CSS', 'PostgreSQL'],
+                'portfolio' => [
+                    ['title' => 'Website Toko Kue Rumahan', 'category' => 'website-development', 'description' => 'Landing page dengan katalog produk dan pemesanan via WhatsApp.', 'colors' => ['#3d6bff', '#1a2040']],
+                    ['title' => 'Portal Himpunan Mahasiswa', 'category' => 'website-development', 'description' => 'Website organisasi dengan berita dan agenda kegiatan.', 'colors' => ['#0ea5e9', '#262e52']],
+                ],
                 'services' => [
                     [
                         'category' => 'website-development',
@@ -177,6 +236,10 @@ class CatalogDemoSeeder extends Seeder
                 'headline' => 'Graphic Designer — Poster & Social Media',
                 'bio' => 'Desainer grafis untuk event kampus, brand lokal, dan kebutuhan promosi media sosial.',
                 'skills' => ['Adobe Illustrator', 'Photoshop', 'Figma'],
+                'portfolio' => [
+                    ['title' => 'Poster Festival Musik Kampus', 'category' => 'poster-graphic-design', 'description' => 'Poster utama dan turunan media sosial untuk festival musik.', 'colors' => ['#c026d3', '#1a2040']],
+                    ['title' => 'Identitas Visual Kedai Kopi', 'category' => 'poster-graphic-design', 'description' => 'Logo, menu, dan feed Instagram untuk kedai kopi lokal.', 'colors' => ['#f59e0b', '#36406b']],
+                ],
                 'services' => [
                     [
                         'category' => 'poster-graphic-design',

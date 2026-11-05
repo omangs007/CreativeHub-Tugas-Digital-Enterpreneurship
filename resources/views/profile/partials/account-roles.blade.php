@@ -31,6 +31,13 @@
         </form>
     @endcan
 
+    @if ($user->hasRole(\App\Enums\RoleName::Freelancer))
+        <p class="mt-6 text-sm text-gray-600">
+            {{ __('Lengkapi profil freelancer dan portofolio agar tampil menarik bagi customer.') }}
+            <a href="{{ route('freelancer.profile.edit') }}" class="font-semibold text-violet-600 hover:text-violet-700">{{ __('Kelola profil freelancer') }} &rarr;</a>
+        </p>
+    @endif
+
     @if (session('status') === 'freelancer-activated')
         <p class="mt-4 text-sm font-medium text-green-600">
             {{ __('Akun freelancer berhasil diaktifkan.') }}

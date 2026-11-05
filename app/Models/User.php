@@ -9,6 +9,7 @@ use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -49,6 +50,22 @@ class User extends Authenticatable implements FilamentUser
     public function services(): HasMany
     {
         return $this->hasMany(Service::class);
+    }
+
+    public function portfolioItems(): HasMany
+    {
+        return $this->hasMany(PortfolioItem::class);
+    }
+
+    /**
+     * Freelancer yang profilnya boleh tampil publik: memiliki role Freelancer dan profil.
+     *
+     * @param  Builder<User>  $query
+     */
+    public function scopePublicFreelancers(Builder $query): void
+    {
+        $query->whereHas('roles', fn (Builder $q) => $q->where('name', RoleName::Freelancer->value))
+            ->whereHas('freelancerProfile');
     }
 
     public function hasRole(RoleName $role): bool

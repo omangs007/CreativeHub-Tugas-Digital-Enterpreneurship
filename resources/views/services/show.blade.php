@@ -11,12 +11,15 @@
                 <h1 class="text-3xl font-extrabold leading-tight tracking-tight sm:text-4xl">{{ $service->title }}</h1>
 
                 @php($profile = $service->freelancer->freelancerProfile)
+                @php($hasPublicProfile = $profile && $service->freelancer->hasRole(\App\Enums\RoleName::Freelancer))
                 <div class="mt-5 flex items-center gap-3">
-                    <span class="flex size-11 items-center justify-center rounded-full bg-ink-900 font-bold text-white">
-                        {{ Str::upper(Str::substr($service->freelancer->name, 0, 1)) }}
-                    </span>
+                    <x-avatar :name="$service->freelancer->name" class="size-11" />
                     <div>
-                        <p class="font-semibold">{{ $service->freelancer->name }}</p>
+                        @if ($hasPublicProfile)
+                            <a href="{{ route('freelancers.show', $service->user_id) }}" class="font-semibold hover:text-violet-700">{{ $service->freelancer->name }}</a>
+                        @else
+                            <p class="font-semibold">{{ $service->freelancer->name }}</p>
+                        @endif
                         <p class="text-sm text-ink-500">
                             {{ $profile?->headline ?? __('Freelancer CreativeHub') }}
                             @if ($profile)
