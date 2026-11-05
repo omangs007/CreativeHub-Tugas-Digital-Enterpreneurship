@@ -1244,3 +1244,74 @@ Pemeriksaan lain: Pint dan build OK; `curl -I` ke server dev menampilkan ketiga 
    - Password demo acak, disimpan di file lokal di luar repo.
 2. `README.md` proyek: kebutuhan, instalasi lokal (PostgreSQL), perintah, akun demo, skenario demo dosen, dan batasan.
 3. UAT: jalankan skenario Guest, Customer, Freelancer, Admin di browser; perbaiki bug yang ditemukan.
+
+---
+
+## Hari 17 — Data Demo, README, dan UAT
+
+**Tanggal pengerjaan:** 5 November 2026
+**Branch:** `hari-17-demo-uat`, di-merge ke `master`
+**Status:** Selesai. **MVP lengkap sesuai Definition of Done blueprint.**
+
+### Fitur yang dikerjakan
+
+- **`DemoSeeder`** (`php artisan db:seed --class=DemoSeeder`), ditandai jelas sebagai data demo, idempoten:
+  - admin demo, 3 customer demo (Budi, Siti, Andi), plus 3 freelancer, layanan, dan portofolio dari `CatalogDemoSeeder`;
+  - 7 pesanan dibuat **lewat alur aplikasi sebenarnya** (`OrderPlacement`, `PaymentProcessor`, `OrderWorkflow`):
+    - selesai + ulasan ★5 (bulan lalu);
+    - dikerjakan;
+    - hasil dikirim menunggu tinjauan;
+    - menunggu pembayaran (tagihan pending, masih berlaku untuk demo simulasi);
+    - pembayaran gagal;
+    - dibatalkan;
+    - dari proyek (2 penawaran, satu diterima, dibayar, dikerjakan);
+  - 1 proyek terbuka dengan penawaran menunggu;
+  - tanggal transaksi digeser ke beberapa hari di **bulan lalu dan bulan ini** (urutan riwayat tetap terjaga) untuk demo filter laporan;
+  - password akun demo acak, **ditambahkan** ke `C:\Users\admin\creativehub-demo-accounts.txt` (di luar repo).
+- **`README.md`** proyek: fitur per peran, teknologi, kebutuhan, instalasi lokal PostgreSQL, akun demo, 5 skenario demo dosen, aturan bisnis penting, pengujian, konfigurasi, dan batasan MVP.
+
+### Hasil testing dan UAT
+
+- `php artisan test`: **264 passed (1321 assertions)**. Isinya 263 test sebelumnya ditambah `DemoSeederTest`:
+  - seeder idempoten, 7 akun demo, 7 pesanan dengan status yang diharapkan, pembayaran 4 berhasil, 1 pending (masih berlaku), 1 gagal, 1 dibatalkan;
+  - setiap pesanan konsisten (total = komisi + freelancer, pembayaran berhasil = total);
+  - omzet bulan lalu + bulan ini = seluruh pembayaran berhasil;
+  - transaksi tersebar di lebih dari 3 tanggal.
+- Pint dan build OK. `DemoSeeder` dijalankan di DB dev (`creativehub`): 7 user, 7 pesanan, 7 pembayaran, 2 proyek, 1 ulasan.
+- **UAT browser:**
+  - **Guest:** beranda menampilkan kategori, 6 layanan, rating nyata ★5,0 (1) dari ulasan demo, freelancer unggulan, dan menu Proyek.
+  - **Admin** (akun sementara, dihapus setelahnya): laporan Okt–Nov menampilkan 4 berhasil = **Rp2.675.000**, komisi Rp267.500, freelancer Rp2.407.500; pending, gagal, dan dibatalkan tercantum tetapi tidak dihitung omzet.
+  - Alur customer (beli → bayar → struk), freelancer (layanan, kirim hasil), chat, dan panel admin sudah diuji di browser pada hari-hari sebelumnya.
+
+### Catatan
+
+- Kode transaksi data demo memakai tanggal saat seeding (contoh `TRX-20261105-…`) walau tanggal transaksinya digeser. Ini hanya artefak data demo; transaksi nyata memakai tanggal saat dibuat.
+
+---
+
+## Ringkasan Status MVP (Definition of Done)
+
+| Kriteria blueprint | Status | Bukti |
+|---|---|---|
+| Guest melihat katalog dan detail jasa | ✅ | Hari 2, 5 |
+| Customer register/login, pilih jasa, checkout, pembayaran simulasi | ✅ | Hari 1, 8, 9 |
+| Pembayaran tersimpan dan menghasilkan nomor transaksi | ✅ | Hari 9 (`TRX-…`, payments + payment_events) |
+| Customer mencetak/mengunduh struk | ✅ | Hari 10 |
+| Customer membuat proyek dan menerima satu proposal | ✅ | Hari 6, 7 |
+| Freelancer mengirim hasil; customer revisi/menyelesaikan | ✅ | Hari 11 |
+| Chat sesuai otorisasi | ✅ | Hari 13 |
+| Admin mengelola data utama dan melihat seluruh transaksi | ✅ | Hari 5, 14 |
+| Laporan berdasarkan tanggal, cetak/PDF | ✅ | Hari 15 |
+| Data laporan cocok dengan database | ✅ | `FinancialReportTest`, `DemoSeederTest` |
+| Role dan akses diuji (IDOR) | ✅ | `SecurityTest` dan test per fitur |
+| Seeder data demo | ✅ | Hari 17 |
+| Instruksi menjalankan lokal | ✅ | `README.md` (PostgreSQL, sesuai keputusan Hari 1, bukan Laragon/MariaDB) |
+
+**Total: 264 feature/unit test lulus (1321 assertions).**
+
+### Sisa pekerjaan / opsional (di luar MVP)
+
+- Integrasi payment gateway sungguhan (misalnya Midtrans) lewat implementasi `PaymentGateway` baru.
+- Foto profil (avatar upload), notifikasi email, dan chat real-time (saat ini polling).
+- Menaikkan `upload_max_filesize`/`post_max_size` PHP jika file hasil lebih dari 2 MB perlu diunggah langsung.
+- Rentang Hari 18–21 pada roadmap dapat dipakai untuk latihan demo, perbaikan dari masukan dosen, dan penyempurnaan visual.
