@@ -3,6 +3,7 @@
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\FreelancerActivationController;
 use App\Http\Controllers\FreelancerProfileController;
+use App\Http\Controllers\FreelancerServiceController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\PortfolioController;
 use App\Http\Controllers\ProfileController;
@@ -29,6 +30,12 @@ Route::middleware('auth')->group(function () {
 Route::middleware(['auth', 'role:freelancer'])->prefix('dashboard')->group(function () {
     Route::get('/freelancer-profile', [FreelancerProfileController::class, 'edit'])->name('freelancer.profile.edit');
     Route::patch('/freelancer-profile', [FreelancerProfileController::class, 'update'])->name('freelancer.profile.update');
+
+    Route::resource('services', FreelancerServiceController::class)
+        ->except(['show'])
+        ->names('freelancer.services');
+    Route::post('/services/{service}/submit', [FreelancerServiceController::class, 'submit'])->name('freelancer.services.submit');
+    Route::post('/services/{service}/withdraw', [FreelancerServiceController::class, 'withdraw'])->name('freelancer.services.withdraw');
 
     Route::resource('portfolio', PortfolioController::class)
         ->except(['create', 'show'])

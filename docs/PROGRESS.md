@@ -444,3 +444,111 @@ Tidak ada error berarti. Sebelum `migrate`, nama database aktif diperiksa terleb
 3. Slug unik dibuat server; status awal `draft`. Freelancer dapat mengajukan review (`pending_review`). Publikasi tetap lewat moderasi admin (Hari 5).
 4. `ServicePolicy`: hanya pemilik yang bisa mengubah. Layanan yang sudah published dan diedit kembali ke `pending_review`. Minimal satu paket aktif sebelum diajukan.
 5. Feature test: kepemilikan, validasi harga (integer > 0, batas maksimum), slug unik, draf tidak tampil publik, status tidak bisa dipalsukan dari form.
+
+---
+
+## Hari 4 — Layanan dan Paket oleh Freelancer
+
+**Tanggal pengerjaan:** 5 November 2026
+**Branch:** `hari-4-layanan-freelancer`, di-merge ke `master`
+**Status:** Selesai dan disetujui (5 November 2026)
+
+### Fitur yang dikerjakan
+
+- **Dashboard `/dashboard/services`** (middleware `role:freelancer` + `ServicePolicy`):
+  - Daftar layanan milik sendiri: status, kategori, jumlah paket aktif, harga mulai, tanggal diperbarui.
+  - Aksi Lihat, Edit, Ajukan Review, Tarik, dan Hapus muncul sesuai status layanan.
+- **Tambah/edit layanan dan paket dalam satu form:**
+  - Judul 10–150 karakter, kategori aktif, deskripsi 30–5000 karakter, thumbnail opsional (JPG/PNG/WebP ≤ 2 MB, SVG ditolak, nama file acak di `services/{user_id}/`).
+  - Paket Basic/Standard/Premium bisa diaktifkan per tier (Alpine). Minimal satu paket aktif.
+  - Field paket hanya divalidasi jika paket diaktifkan (`exclude_unless`). Tier di luar basic/standard/premium ditolak.
+  - Harga integer Rp10.000–Rp100.000.000. Format "1.250.000" diterima; desimal, nol, negatif, dan nilai terlalu besar ditolak.
+  - Waktu pengerjaan 1–365 hari, revisi 0–20.
+- **Ditentukan server:**
+  - `user_id` (dari user login).
+  - `slug` unik dari judul (`judul`, `judul-2`, …), tidak berubah saat judul diedit agar URL stabil.
+  - `thumbnail_path` dan `status`. Status awal selalu `draft`.
+  - `slug` dan `thumbnail_path` dikeluarkan dari `$fillable` model `Service`.
+- **Alur status** (method di model `Service`):
+  - `submitForReview()`: draf atau ditolak → `pending_review`, wajib punya minimal satu paket aktif.
+  - `withdraw()`: published atau pending → draf (`published_at` dikosongkan).
+  - `markEditedByOwner()`: layanan published yang diedit → `pending_review` (dimoderasi ulang).
+  - Hapus hanya untuk layanan yang tidak sedang published; layanan published harus ditarik dulu. Hapus ikut menghapus paket (cascade) dan thumbnail.
+  - Publikasi (`pending_review` → `published`) belum tersedia di UI; menunggu moderasi admin di Hari 5.
+- **Paket yang dimatikan** disimpan sebagai `is_active = false`, tidak dihapus, untuk keperluan riwayat pesanan nanti.
+- **UI:** komponen `<x-service-status-badge>`, menu "Layanan Saya" di navigasi freelancer, peringatan saat mengedit layanan yang sedang tayang.
+
+### File yang dibuat atau diubah
+
+```text
+app/Models/Service.php                     (fillable diperketat, uniqueSlug, submitForReview, withdraw, markEditedByOwner, isDeletable)
+app/Policies/ServicePolicy.php
+app/Http/Requests/ServiceRequest.php
+app/Http/Controllers/FreelancerServiceController.php
+routes/web.php                             (resource dashboard/services + submit + withdraw)
+database/seeders/CatalogDemoSeeder.php     (slug di-set eksplisit karena tidak fillable lagi)
+resources/views/freelancer/services/index.blade.php, create.blade.php, edit.blade.php, _form.blade.php
+resources/views/components/service-status-badge.blade.php
+resources/views/layouts/navigation.blade.php
+tests/Feature/Freelancer/ServiceManagementTest.php
+```
+
+### Command yang dijalankan
+
+```powershell
+git switch -c hari-4-layanan-freelancer
+php artisan test
+vendor/bin/pint
+npm run build
+```
+
+Tidak ada migration baru di Hari 4.
+
+### Hasil testing
+
+`php artisan test` (5 November 2026): **110 passed (382 assertions)**. Isinya 92 test sebelumnya ditambah 18 test di `ServiceManagementTest`:
+
+- guest/customer ditolak;
+- daftar hanya menampilkan layanan sendiri;
+- form tampil;
+- buat draf: input `status`/`user_id`/`slug` palsu diabaikan, thumbnail tersimpan, draf memberi 404 di publik;
+- slug unik `-2`/`-3`;
+- harga "1.250.000" diterima;
+- validasi (judul, kategori nonaktif, SVG, harga 0/negatif/desimal/terlalu besar, hari 0, tanpa paket aktif, tier tidak dikenal);
+- update layanan dan paket (slug tetap, paket dimatikan menjadi nonaktif);
+- edit layanan published kembali ke review;
+- ganti thumbnail menghapus file lama;
+- freelancer lain mendapat 403 untuk edit/update/submit/withdraw/delete;
+- ajukan review dari draf dan dari ditolak;
+- tolak pengajuan tanpa paket aktif dan pengajuan ulang;
+- tarik layanan published;
+- hapus draf beserta paket dan thumbnail;
+- tolak hapus layanan published.
+
+Pemeriksaan lain:
+
+- `vendor/bin/pint` passed; `npm run build` sukses.
+- **Uji browser end-to-end (Playwright)** memakai akun freelancer **sementara** yang dibuat dan dihapus di database dev:
+  - login, buka form tambah layanan, isi, simpan sebagai draf, ajukan review;
+  - hasilnya status "Menunggu Review", harga "mulai Rp85.000", tanpa error console.
+  - Setelah dihapus, cascade membersihkan layanan dan paket uji; database dev kembali berisi 3 user dan 7 layanan.
+
+### Error dan solusinya
+
+Tidak ada error berarti.
+
+### Pekerjaan yang belum selesai / catatan
+
+- Commit Hari 4 dibuat dan di-merge ke `master`.
+- Layanan baru belum bisa tayang sampai moderasi admin dibuat (Hari 5). Layanan demo dari seeder tetap published.
+- Belum ada catatan alasan penolakan; akan ditambahkan bersama moderasi.
+- Tombol file input memakai teks bawaan browser ("Choose file").
+
+### Rencana Hari 5 — Moderasi admin (Filament) dan pencarian
+
+1. Filament Resource **Layanan**: daftar dengan filter status/kategori; aksi **Setujui** (`pending_review` → `published`, isi `published_at`) dan **Tolak** dengan alasan wajib (kolom baru `rejection_reason`), yang ditampilkan ke freelancer.
+2. Filament Resource **Kategori**: CRUD, aktif/nonaktif, urutan.
+3. Tabel `audit_logs` dan pencatatan aksi moderasi admin (siapa, apa, kapan, data sebelum/sesudah).
+4. Widget dashboard admin sederhana: jumlah layanan menunggu review, total freelancer, total layanan published.
+5. Filter katalog tambahan: rentang harga (min/maks) dan urutan (terbaru, harga terendah/tertinggi).
+6. Feature test: hanya admin yang bisa moderasi, transisi status valid, alasan penolakan wajib, audit log tercatat, dan filter harga benar.

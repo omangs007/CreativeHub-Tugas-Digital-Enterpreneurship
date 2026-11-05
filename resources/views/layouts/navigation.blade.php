@@ -21,6 +21,10 @@
                     </x-nav-link>
 
                     @if (Auth::user()->hasRole(\App\Enums\RoleName::Freelancer))
+                        <x-nav-link :href="route('freelancer.services.index')" :active="request()->routeIs('freelancer.services.*')">
+                            {{ __('Layanan Saya') }}
+                        </x-nav-link>
+
                         <x-nav-link :href="route('freelancer.profile.edit')" :active="request()->routeIs('freelancer.profile.*')">
                             {{ __('Profil Freelancer') }}
                         </x-nav-link>
@@ -96,6 +100,10 @@
             </x-responsive-nav-link>
 
             @if (Auth::user()->hasRole(\App\Enums\RoleName::Freelancer))
+                <x-responsive-nav-link :href="route('freelancer.services.index')" :active="request()->routeIs('freelancer.services.*')">
+                    {{ __('Layanan Saya') }}
+                </x-responsive-nav-link>
+
                 <x-responsive-nav-link :href="route('freelancer.profile.edit')" :active="request()->routeIs('freelancer.profile.*')">
                     {{ __('Profil Freelancer') }}
                 </x-responsive-nav-link>

@@ -82,7 +82,9 @@ class CatalogDemoSeeder extends Seeder
      */
     private function demoService(User $user, int $categoryId, array $data): void
     {
-        $service = Service::firstOrNew(['slug' => Str::slug($data['title'])]);
+        $slug = Str::slug($data['title']);
+        $service = Service::where('slug', $slug)->firstOrNew();
+        $service->slug = $slug;
         $service->fill([
             'category_id' => $categoryId,
             'title' => $data['title'],

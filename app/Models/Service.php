@@ -10,12 +10,15 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 /**
- * `status` dan `published_at` sengaja tidak fillable: perubahan status
- * dilakukan oleh alur moderasi, bukan dari input form.
+ * `user_id`, `slug`, `thumbnail_path`, `status`, dan `published_at` sengaja tidak fillable:
+ * nilainya ditentukan server (pemilik, slug unik, file tersimpan, alur status/moderasi),
+ * bukan dari input form.
  */
-#[Fillable(['category_id', 'title', 'slug', 'description', 'thumbnail_path'])]
+#[Fillable(['category_id', 'title', 'description'])]
 class Service extends Model
 {
     /** @use HasFactory<ServiceFactory> */
@@ -84,5 +87,77 @@ class Service extends Model
         $query->with(['category', 'freelancer'])
             ->withMin('activePackages as starting_price', 'price')
             ->withMin('activePackages as fastest_delivery_days', 'delivery_days');
+    }
+
+    /**
+     * Slug unik dari judul: `judul`, `judul-2`, `judul-3`, dan seterusnya.
+     */
+    public static function uniqueSlug(string $title): string
+    {
+        $base = Str::limit(Str::slug($title), 160, '') ?: 'layanan';
+        $slug = $base;
+
+        for ($i = 2; static::where('slug', $slug)->exists(); $i++) {
+            $slug = "{$base}-{$i}";
+        }
+
+        return $slug;
+    }
+
+    /**
+     * Draf atau layanan ditolak diajukan untuk dimoderasi admin.
+     *
+     * @throws ValidationException
+     */
+    public function submitForReview(): void
+    {
+        if (! in_array($this->status, [ServiceStatus::Draft, ServiceStatus::Rejected], true)) {
+            throw ValidationException::withMessages([
+                'service' => __('Hanya layanan berstatus draf atau ditolak yang dapat diajukan review.'),
+            ]);
+        }
+
+        if (! $this->activePackages()->exists()) {
+            throw ValidationException::withMessages([
+                'service' => __('Tambahkan minimal satu paket aktif sebelum mengajukan review.'),
+            ]);
+        }
+
+        $this->status = ServiceStatus::PendingReview;
+        $this->save();
+    }
+
+    /**
+     * Tarik layanan dari katalog atau dari antrean review, kembali menjadi draf.
+     *
+     * @throws ValidationException
+     */
+    public function withdraw(): void
+    {
+        if (! in_array($this->status, [ServiceStatus::Published, ServiceStatus::PendingReview], true)) {
+            throw ValidationException::withMessages([
+                'service' => __('Layanan ini tidak sedang tayang atau menunggu review.'),
+            ]);
+        }
+
+        $this->status = ServiceStatus::Draft;
+        $this->published_at = null;
+        $this->save();
+    }
+
+    /**
+     * Layanan published yang diedit pemiliknya harus dimoderasi ulang.
+     */
+    public function markEditedByOwner(): void
+    {
+        if ($this->status === ServiceStatus::Published) {
+            $this->status = ServiceStatus::PendingReview;
+            $this->published_at = null;
+        }
+    }
+
+    public function isDeletable(): bool
+    {
+        return $this->status !== ServiceStatus::Published;
     }
 }
