@@ -748,3 +748,55 @@ Pemeriksaan lain: Pint dan build OK; `migrate` dev (DB `creativehub`) menjalanka
 2. `OrderPlacement::orderPackage()`: hanya layanan published dengan kategori dan paket aktif, customer ≠ freelancer; snapshot judul, tier, scope, hari, revisi, dan harga; komisi dihitung server; harga dari browser diabaikan.
 3. Layanan atau paket yang sudah punya order tidak bisa dihapus (tetap bisa dinonaktifkan atau ditarik).
 4. Feature test: membeli layanan sendiri ditolak, layanan draft/paket nonaktif ditolak, manipulasi harga diabaikan, snapshot tidak berubah saat paket diedit.
+
+---
+
+## Hari 8 — Checkout Paket Layanan
+
+**Tanggal pengerjaan:** 5 November 2026
+**Branch:** `hari-8-checkout-paket`, di-merge ke `master`
+**Status:** Selesai
+
+### Fitur yang dikerjakan
+
+- **Detail layanan:** tombol **Pesan Paket {tier}** aktif dan menuju `/checkout/package/{id}`. Guest diarahkan ke login lebih dulu; pemilik layanan melihat label "Ini layanan Anda". Ada keterangan mode demo.
+- **Halaman konfirmasi** (`CheckoutController@create`): ringkasan layanan, paket, dan biaya diambil dari database. 404 untuk layanan yang tidak publik atau paket nonaktif.
+- **Form checkout:** catatan opsional untuk freelancer (maksimal 2000 karakter) dan persetujuan wajib, termasuk pernyataan bahwa pembayaran hanya simulasi.
+- **`OrderPlacement::orderPackage()`** dalam transaksi dengan `lockForUpdate` paket:
+  - memastikan layanan publik dan paket aktif, customer ≠ pemilik, akun memiliki role customer;
+  - snapshot judul, tier, nama paket, scope (+ catatan customer), hari, revisi, harga;
+  - komisi dihitung server; field harga/total/freelancer dari browser diabaikan;
+  - riwayat awal `pending_payment` dicatat.
+- **Klik ganda:** order `pending_payment` yang sudah ada untuk customer dan paket yang sama dipakai ulang, sehingga tidak ada order duplikat.
+- **Perlindungan data:** layanan yang sudah pernah dipesan tidak bisa dihapus freelancer (`Service::isDeletable()`), tetapi tetap bisa ditarik atau paketnya dinonaktifkan. FK order ke paket bersifat `restrict`.
+
+### Hasil testing
+
+`php artisan test`: **184 passed (785 assertions)**. Isinya 173 test sebelumnya ditambah 11 test di `CheckoutPackageTest`:
+
+- guest diarahkan ke login;
+- tautan checkout ada di detail layanan;
+- konfirmasi menampilkan data dari database;
+- order dibuat dengan harga Rp300.000 dari database walau browser mengirim `price=1`/`total_amount=1`, komisi Rp30.000 dan bagian freelancer Rp270.000;
+- snapshot tidak berubah saat paket/layanan diedit;
+- klik ganda tidak membuat order ganda;
+- persetujuan wajib;
+- tidak bisa membeli layanan sendiri;
+- layanan draft, kategori nonaktif, dan paket nonaktif ditolak (404 dan error);
+- akun admin-only tidak bisa memesan;
+- layanan yang sudah dipesan tidak bisa dihapus.
+
+### Error dan solusinya
+
+| Masalah | Solusi |
+|---|---|
+| Setup test membuat paket Premium kedua sehingga melanggar unique `(service_id, tier)` | Test menonaktifkan paket Premium yang sudah ada |
+
+### Rencana Hari 9 — Pembayaran simulasi (dummy payment gateway)
+
+1. Tabel `payments` (kode transaksi unik, order, metode, status `pending|success|failed|expired|cancelled`, nominal snapshot, `paid_at`, referensi provider) dan `payment_events` (log setiap kejadian).
+2. Interface `PaymentGateway` + `DummyPaymentGateway` (QRIS dummy, Virtual Account dummy, e-wallet dummy). Tidak ada kartu, PIN, atau OTP.
+3. Halaman checkout pembayaran `/checkout/{order}`: pilih metode, lalu instruksi dummy (kode QR teks, nomor VA, nomor e-wallet), dengan banner **"Mode Demo — pembayaran tidak menggunakan uang sungguhan"**.
+4. Simulasi hasil **berhasil, pending, gagal** diproses di server (POST + CSRF + otorisasi + idempotensi + `lockForUpdate`). URL "sukses" saja tidak mengubah status.
+5. Pembayaran berhasil: order menjadi `paid` lalu `in_progress`, dengan riwayat status. Transaksi tidak boleh diproses dua kali.
+6. Feature test: hanya customer pemilik yang bisa membayar, nominal dari server, idempotensi, pembayaran gagal tidak mengubah order, redirect sukses palsu tidak berpengaruh.

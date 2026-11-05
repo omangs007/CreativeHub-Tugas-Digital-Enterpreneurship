@@ -89,10 +89,18 @@
                                 </li>
                             </ul>
 
-                            <button type="button" disabled class="mt-6 w-full cursor-not-allowed rounded-xl bg-ink-200 px-4 py-3 font-semibold text-ink-500">
-                                {{ __('Pesan Paket :tier', ['tier' => $package->tier->label()]) }}
-                            </button>
-                            <p class="mt-2 text-center text-xs text-ink-400">{{ __('Pemesanan dan checkout segera tersedia.') }}</p>
+                            @if (auth()->id() === $service->user_id)
+                                <p class="mt-6 rounded-xl bg-ink-100 px-4 py-3 text-center text-sm font-semibold text-ink-600">{{ __('Ini layanan Anda') }}</p>
+                            @else
+                                <a href="{{ route('checkout.package', $package) }}"
+                                   class="mt-6 block w-full rounded-xl bg-violet-600 px-4 py-3 text-center font-semibold text-white shadow-lg shadow-violet-600/30 transition hover:bg-violet-500">
+                                    {{ __('Pesan Paket :tier', ['tier' => $package->tier->label()]) }}
+                                </a>
+                                @guest
+                                    <p class="mt-2 text-center text-xs text-ink-400">{{ __('Anda akan diminta masuk terlebih dahulu.') }}</p>
+                                @endguest
+                            @endif
+                            <p class="mt-2 text-center text-xs text-ink-400">{{ __('Mode demo: pembayaran tidak menggunakan uang sungguhan.') }}</p>
                         </div>
                     @endforeach
                 </div>

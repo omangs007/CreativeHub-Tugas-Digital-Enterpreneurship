@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Enums\PackageTier;
+use App\Enums\ServiceStatus;
 use App\Http\Requests\ServiceRequest;
 use App\Models\Category;
 use App\Models\Service;
@@ -120,7 +121,9 @@ class FreelancerServiceController extends Controller
 
         if (! $service->isDeletable()) {
             throw ValidationException::withMessages([
-                'service' => __('Tarik layanan dari katalog terlebih dahulu sebelum menghapusnya.'),
+                'service' => $service->status === ServiceStatus::Published
+                    ? __('Tarik layanan dari katalog terlebih dahulu sebelum menghapusnya.')
+                    : __('Layanan yang sudah pernah dipesan tidak dapat dihapus. Tarik layanan atau nonaktifkan paketnya.'),
             ]);
         }
 

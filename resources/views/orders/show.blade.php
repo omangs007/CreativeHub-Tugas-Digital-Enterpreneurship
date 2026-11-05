@@ -13,8 +13,10 @@
 
     <div class="py-12">
         <div class="max-w-5xl mx-auto sm:px-6 lg:px-8 space-y-6">
-            @if (session('status') === 'proposal-accepted')
-                <p class="mx-4 rounded-md bg-green-50 p-3 text-sm text-green-700 sm:mx-0">{{ __('Penawaran diterima. Pesanan dibuat dan menunggu pembayaran.') }}</p>
+            @if (in_array(session('status'), ['proposal-accepted', 'order-created'], true))
+                <p class="mx-4 rounded-md bg-green-50 p-3 text-sm text-green-700 sm:mx-0">
+                    {{ session('status') === 'proposal-accepted' ? __('Penawaran diterima. Pesanan dibuat dan menunggu pembayaran.') : __('Pesanan dibuat dan menunggu pembayaran.') }}
+                </p>
             @endif
             <x-input-error class="mx-4 sm:mx-0" :messages="$errors->get('order')" />
 

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\CustomerProjectController;
 use App\Http\Controllers\FreelancerActivationController;
 use App\Http\Controllers\FreelancerProfileController;
@@ -28,6 +29,8 @@ Route::get('/dashboard', function () {
 })->middleware(['auth', 'verified'])->name('dashboard');
 
 Route::middleware('auth')->group(function () {
+    Route::get('/checkout/package/{package}', [CheckoutController::class, 'create'])->name('checkout.package');
+    Route::post('/checkout/package/{package}', [CheckoutController::class, 'store'])->name('checkout.package.store');
     Route::get('/dashboard/orders', [OrderController::class, 'index'])->name('orders.index');
     Route::get('/dashboard/orders/{order}', [OrderController::class, 'show'])->name('orders.show');
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');

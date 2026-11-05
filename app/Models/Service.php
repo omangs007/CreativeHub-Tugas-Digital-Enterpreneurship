@@ -67,6 +67,11 @@ class Service extends Model
         return $this->hasMany(ServicePackage::class);
     }
 
+    public function orders(): HasMany
+    {
+        return $this->hasMany(Order::class);
+    }
+
     public function activePackages(): HasMany
     {
         return $this->packages()->where('is_active', true);
@@ -252,8 +257,12 @@ class Service extends Model
         }
     }
 
+    /**
+     * Layanan yang sedang tayang atau sudah pernah dipesan tidak boleh dihapus
+     * (riwayat pesanan dan laporan harus tetap utuh); tarik atau nonaktifkan paketnya saja.
+     */
     public function isDeletable(): bool
     {
-        return $this->status !== ServiceStatus::Published;
+        return $this->status !== ServiceStatus::Published && ! $this->orders()->exists();
     }
 }

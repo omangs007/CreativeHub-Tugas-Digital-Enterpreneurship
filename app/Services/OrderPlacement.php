@@ -5,9 +5,12 @@ namespace App\Services;
 use App\Enums\OrderStatus;
 use App\Enums\ProjectStatus;
 use App\Enums\ProposalStatus;
+use App\Enums\RoleName;
 use App\Models\Order;
 use App\Models\Project;
 use App\Models\Proposal;
+use App\Models\Service;
+use App\Models\ServicePackage;
 use App\Models\User;
 use App\Support\CommissionCalculator;
 use Illuminate\Support\Facades\DB;
@@ -19,6 +22,75 @@ use Illuminate\Validation\ValidationException;
  */
 class OrderPlacement
 {
+    /**
+     * Customer memesan paket layanan. Harga dan scope diambil dari database (bukan dari
+     * browser) di dalam transaksi dengan paket terkunci. Klik ganda tidak membuat order
+     * ganda: order menunggu pembayaran yang sudah ada untuk paket yang sama dipakai ulang.
+     *
+     * @throws ValidationException
+     */
+    public function orderPackage(ServicePackage $package, User $customer, ?string $customerNote = null): Order
+    {
+        return DB::transaction(function () use ($package, $customer, $customerNote) {
+            $package = ServicePackage::whereKey($package->id)->lockForUpdate()->firstOrFail();
+            $service = Service::publiclyVisible()->whereKey($package->service_id)->first();
+
+            if (! $service || ! $package->is_active) {
+                throw ValidationException::withMessages(['package' => __('Paket ini sedang tidak tersedia untuk dipesan.')]);
+            }
+
+            if ($service->user_id === $customer->id) {
+                throw ValidationException::withMessages(['package' => __('Anda tidak dapat memesan layanan milik sendiri.')]);
+            }
+
+            if (! $customer->hasRole(RoleName::Customer)) {
+                throw ValidationException::withMessages(['package' => __('Hanya akun customer yang dapat memesan layanan.')]);
+            }
+
+            $existing = Order::where('customer_id', $customer->id)
+                ->where('service_package_id', $package->id)
+                ->where('status', OrderStatus::PendingPayment)
+                ->first();
+
+            if ($existing) {
+                return $existing;
+            }
+
+            $scope = $package->description;
+            $customerNote = trim((string) $customerNote);
+
+            if ($customerNote !== '') {
+                $scope .= "\n\n".__('Catatan customer:')."\n".$customerNote;
+            }
+
+            $split = CommissionCalculator::split($package->price);
+
+            $order = new Order;
+            $order->order_number = Order::generateOrderNumber();
+            $order->customer_id = $customer->id;
+            $order->freelancer_id = $service->user_id;
+            $order->service_id = $service->id;
+            $order->service_package_id = $package->id;
+            $order->title = $service->title;
+            $order->package_tier = $package->tier->value;
+            $order->package_name = $package->name;
+            $order->scope_description = $scope;
+            $order->delivery_days = $package->delivery_days;
+            $order->revisions_allowed = $package->revisions;
+            $order->subtotal_amount = $package->price;
+            $order->total_amount = $package->price;
+            $order->commission_rate_bps = $split['rate_bps'];
+            $order->commission_amount = $split['commission'];
+            $order->freelancer_amount = $split['freelancer'];
+            $order->status = OrderStatus::PendingPayment;
+            $order->save();
+
+            $order->recordHistory(null, OrderStatus::PendingPayment, $customer, __('Order dibuat dari paket :tier.', ['tier' => $package->tier->label()]));
+
+            return $order;
+        });
+    }
+
     /**
      * Customer menerima satu proposal: proposal lain ditolak, proyek menjadi dikerjakan,
      * dan order menunggu pembayaran dibuat. Baris proyek dikunci agar penerimaan ganda
