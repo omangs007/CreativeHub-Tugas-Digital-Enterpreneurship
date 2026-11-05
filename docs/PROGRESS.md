@@ -979,3 +979,54 @@ Pemeriksaan lain: Pint dan build OK; `migrate` dev (DB `creativehub`) menjalanka
    - freelancer: pesanan aktif dan yang perlu dikirim, penawaran menunggu, layanan per status, **ringkasan pendapatan** (dari pesanan selesai/dibayar, bagian freelancer).
 2. Halaman `/dashboard/earnings` untuk freelancer: daftar pesanan berbayar dengan nilai, komisi, dan bagian freelancer (pencatatan simulasi).
 3. Data hanya milik user login. Feature test isolasi data.
+
+---
+
+## Hari 12 — Dashboard Customer & Freelancer, Pendapatan
+
+**Tanggal pengerjaan:** 5 November 2026
+**Branch:** `hari-12-dashboard`, di-merge ke `master`
+**Status:** Selesai
+
+### Fitur yang dikerjakan
+
+- **`/dashboard`** (`DashboardController`) menggantikan halaman bawaan Breeze. Seksi tampil sesuai peran; akun dengan dua peran melihat keduanya.
+  - **Customer:**
+    - kartu pesanan menunggu pembayaran, sedang dikerjakan, perlu ditinjau, dan total dibayar (pembayaran simulasi berhasil);
+    - daftar "Perlu tindakan Anda" (bayar atau tinjau hasil);
+    - proyek terbuka dengan jumlah penawaran baru;
+    - pembayaran terbaru;
+    - aksi cepat Cari Jasa dan Posting Proyek.
+  - **Freelancer:**
+    - kartu pendapatan selesai, dalam pengerjaan, penawaran menunggu, layanan tayang (+ menunggu review);
+    - daftar "Pesanan yang perlu dikirim" dengan target tanggal (tanggal bayar + hari pengerjaan);
+    - aksi cepat Cari Proyek dan Tambah Layanan.
+  - **Admin:** tombol Buka Panel Admin.
+- **`/dashboard/earnings`** (role freelancer):
+  - Ringkasan dan tabel pesanan berbayar (nilai, komisi, bagian freelancer, status, tanggal bayar).
+  - Definisi angka:
+    - *pendapatan selesai* = Σ bagian freelancer dari pesanan `completed`;
+    - *dalam pengerjaan* = Σ bagian freelancer dari pesanan paid/in_progress/delivered/revision_requested;
+    - *komisi* = Σ komisi dari semua pesanan berbayar;
+    - pesanan menunggu pembayaran dan dibatalkan tidak dihitung.
+  - Keterangan jelas bahwa ini **pencatatan simulasi, bukan payout atau escrow**.
+- Komponen `<x-stat-card>`. Menu Pendapatan ditambahkan di dropdown Freelancer.
+
+### Hasil testing
+
+`php artisan test`: **223 passed (1018 assertions)**. Isinya 217 test sebelumnya ditambah 6 test di `DashboardTest`:
+
+- guest diarahkan ke login;
+- dashboard customer hanya menampilkan data sendiri (bayar Rp250.000, siap ditinjau, 2 penawaran baru);
+- dashboard dan halaman pendapatan freelancer: selesai Rp900.000, dalam pengerjaan Rp450.000, komisi Rp150.000; pesanan belum dibayar dan milik freelancer lain tidak dihitung;
+- akun dua peran melihat kedua seksi;
+- halaman pendapatan hanya untuk freelancer;
+- admin melihat tautan panel.
+
+Pemeriksaan lain: Pint dan build OK.
+
+### Rencana Hari 13 — Chat dan ulasan
+
+1. Tabel `conversations` (satu per order, dan satu per pasangan proyek–freelancer untuk diskusi penawaran) dan `messages`. Hanya peserta yang bisa membaca dan mengirim (policy). Polling sederhana (Alpine `setInterval` atau Livewire `wire:poll`) tanpa layanan real-time eksternal.
+2. Tabel `reviews`: satu ulasan per order, hanya oleh customer setelah order `completed`, rating 1–5 dan komentar; tampil di detail layanan dan profil freelancer; rata-rata rating di kartu layanan (data nyata).
+3. Feature test akses percakapan, satu ulasan per order, dan ulasan hanya untuk order selesai.

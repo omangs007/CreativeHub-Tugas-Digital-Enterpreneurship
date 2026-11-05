@@ -3,6 +3,8 @@
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\CustomerProjectController;
+use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\EarningsController;
 use App\Http\Controllers\FreelancerActivationController;
 use App\Http\Controllers\FreelancerProfileController;
 use App\Http\Controllers\FreelancerServiceController;
@@ -27,9 +29,7 @@ Route::get('/projects', [ProjectController::class, 'index'])->name('projects.ind
 Route::get('/projects/{project}', [ProjectController::class, 'show'])->whereNumber('project')->name('projects.show');
 Route::get('/freelancers/{user}', [FreelancerProfileController::class, 'show'])->whereNumber('user')->name('freelancers.show');
 
-Route::get('/dashboard', function () {
-    return view('dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
+Route::get('/dashboard', DashboardController::class)->middleware(['auth', 'verified'])->name('dashboard');
 
 Route::middleware('auth')->group(function () {
     Route::get('/checkout/package/{package}', [CheckoutController::class, 'create'])->name('checkout.package');
@@ -72,6 +72,7 @@ Route::middleware(['auth', 'role:freelancer'])->prefix('dashboard')->group(funct
     Route::post('/services/{service}/submit', [FreelancerServiceController::class, 'submit'])->name('freelancer.services.submit');
     Route::post('/services/{service}/withdraw', [FreelancerServiceController::class, 'withdraw'])->name('freelancer.services.withdraw');
 
+    Route::get('/earnings', EarningsController::class)->name('freelancer.earnings');
     Route::get('/proposals', [ProposalController::class, 'index'])->name('freelancer.proposals.index');
     Route::post('/projects/{project}/proposals', [ProposalController::class, 'store'])->name('freelancer.proposals.store');
     Route::get('/proposals/{proposal}/edit', [ProposalController::class, 'edit'])->name('freelancer.proposals.edit');
