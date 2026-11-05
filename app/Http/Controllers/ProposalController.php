@@ -6,6 +6,8 @@ use App\Enums\ProposalStatus;
 use App\Http\Requests\ProposalRequest;
 use App\Models\Project;
 use App\Models\Proposal;
+use App\Notifications\ActivityNotification;
+use App\Support\Rupiah;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -43,6 +45,14 @@ class ProposalController extends Controller
             // Pengiriman ganda bersamaan ditahan oleh unique index parsial di database.
             throw ValidationException::withMessages(['proposal' => __('Anda sudah memiliki penawaran aktif untuk proyek ini.')]);
         }
+
+        ActivityNotification::send($project->customer, __('Penawaran baru'),
+            __(':name mengirim penawaran :price untuk :title.', [
+                'name' => $request->user()->name,
+                'price' => Rupiah::format($proposal->price),
+                'title' => $project->title,
+            ]),
+            'customer.projects.show', $project);
 
         return Redirect::route('freelancer.proposals.index')->with('status', 'proposal-sent');
     }

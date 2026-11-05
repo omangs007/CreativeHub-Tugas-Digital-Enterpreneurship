@@ -11,6 +11,7 @@ use App\Models\OrderRevision;
 use App\Models\Payment;
 use App\Models\Project;
 use App\Models\User;
+use App\Notifications\ActivityNotification;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -56,6 +57,10 @@ class OrderWorkflow
 
                 $order->transitionTo(OrderStatus::Delivered, $freelancer, __('Hasil pekerjaan dikirim.'));
 
+                ActivityNotification::send($order->customer, __('Hasil pekerjaan dikirim'),
+                    __(':name mengirim hasil untuk :title. Tinjau lalu selesaikan atau minta revisi.', ['name' => $freelancer->name, 'title' => $order->title]),
+                    'orders.show', $order);
+
                 return $delivery;
             });
         } catch (Throwable $e) {
@@ -90,6 +95,10 @@ class OrderWorkflow
             $order->revisions_used++;
             $order->transitionTo(OrderStatus::RevisionRequested, $customer, __('Revisi ke-:n diminta.', ['n' => $order->revisions_used]));
 
+            ActivityNotification::send($order->freelancer, __('Revisi diminta'),
+                __(':name meminta revisi untuk :title.', ['name' => $customer->name, 'title' => $order->title]),
+                'orders.show', $order);
+
             return $revision;
         });
     }
@@ -104,6 +113,10 @@ class OrderWorkflow
             $this->ensureCustomerReviewing($order, $customer);
 
             $order->transitionTo(OrderStatus::Completed, $customer, __('Pesanan diselesaikan oleh customer.'));
+
+            ActivityNotification::send($order->freelancer, __('Pesanan selesai'),
+                __(':title telah diselesaikan customer. Pendapatan Anda tercatat.', ['title' => $order->title]),
+                'orders.show', $order);
 
             if ($order->project_id) {
                 Project::whereKey($order->project_id)->update(['status' => ProjectStatus::Completed, 'updated_at' => now()]);
@@ -139,6 +152,10 @@ class OrderWorkflow
                 });
 
             $order->transitionTo(OrderStatus::Cancelled, $customer, __('Pesanan dibatalkan customer sebelum dibayar.'));
+
+            ActivityNotification::send($order->freelancer, __('Pesanan dibatalkan'),
+                __(':title dibatalkan customer sebelum dibayar.', ['title' => $order->title]),
+                'orders.show', $order);
 
             if ($order->project_id) {
                 Project::whereKey($order->project_id)->update(['status' => ProjectStatus::Closed, 'closed_at' => now(), 'updated_at' => now()]);

@@ -11,6 +11,7 @@ use App\Http\Controllers\FreelancerActivationController;
 use App\Http\Controllers\FreelancerProfileController;
 use App\Http\Controllers\FreelancerServiceController;
 use App\Http\Controllers\HomeController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\OrderWorkflowController;
 use App\Http\Controllers\PaymentController;
@@ -52,6 +53,10 @@ Route::middleware('auth')->group(function () {
     Route::post('/dashboard/orders/{order}/cancel', [OrderWorkflowController::class, 'cancel'])->name('orders.cancel');
     Route::get('/dashboard/deliveries/{delivery}/download', [OrderWorkflowController::class, 'download'])->name('deliveries.download');
     Route::post('/dashboard/orders/{order}/review', [ReviewController::class, 'store'])->name('orders.review');
+
+    Route::get('/dashboard/notifications', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::post('/dashboard/notifications/read-all', [NotificationController::class, 'readAll'])->name('notifications.read-all');
+    Route::get('/dashboard/notifications/{id}', [NotificationController::class, 'open'])->whereUuid('id')->name('notifications.open');
 
     Route::get('/dashboard/messages', [ConversationController::class, 'index'])->name('messages.index');
     Route::get('/dashboard/messages/{conversation}', [ConversationController::class, 'show'])->name('messages.show');

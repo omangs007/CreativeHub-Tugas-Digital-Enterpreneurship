@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\ServiceStatus;
+use App\Notifications\ActivityNotification;
 use App\Support\AuditLogger;
 use Database\Factories\ServiceFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -182,6 +183,10 @@ class Service extends Model
             $this->save();
 
             AuditLogger::record('service.approved', $this, $this->serializeForAudit($old), ['status' => $this->status->value], $admin);
+
+            ActivityNotification::send($this->freelancer, __('Layanan disetujui'),
+                __(':title kini tampil di katalog.', ['title' => $this->title]),
+                'freelancer.services.index');
         });
     }
 
@@ -212,6 +217,10 @@ class Service extends Model
                 'status' => $this->status->value,
                 'rejection_reason' => $this->rejection_reason,
             ], $admin);
+
+            ActivityNotification::send($this->freelancer, __('Layanan ditolak'),
+                __(':title ditolak admin: :reason', ['title' => $this->title, 'reason' => $this->rejection_reason]),
+                'freelancer.services.index');
         });
     }
 

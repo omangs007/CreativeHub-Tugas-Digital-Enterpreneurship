@@ -21,7 +21,7 @@
                     </x-nav-link>
 
                     <x-nav-link :href="route('messages.index')" :active="request()->routeIs('messages.*')">
-                        {{ __('Pesan') }}
+                        {{ __('Pesan') }}@if ($unreadMessages > 0)<span class="ms-1.5 rounded-full bg-violet-600 px-1.5 text-[11px] font-bold text-white">{{ $unreadMessages }}</span>@endif
                     </x-nav-link>
 
                     @if (Auth::user()->hasRole(\App\Enums\RoleName::Customer))
@@ -69,7 +69,14 @@
             </div>
 
             <!-- Settings Dropdown -->
-            <div class="hidden sm:flex sm:items-center sm:ms-6">
+            <div class="hidden sm:flex sm:items-center sm:ms-6 sm:gap-1">
+                <a href="{{ route('notifications.index') }}" class="relative rounded-full p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+                   aria-label="{{ trans_choice('{0} Notifikasi|[1,*] Notifikasi, :count belum dibaca', $unreadNotifications, ['count' => $unreadNotifications]) }}">
+                    <svg class="size-6" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" /><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" /></svg>
+                    @if ($unreadNotifications > 0)
+                        <span class="absolute -right-0.5 -top-0.5 flex min-w-5 items-center justify-center rounded-full bg-violet-600 px-1 text-[11px] font-bold text-white">{{ $unreadNotifications > 99 ? '99+' : $unreadNotifications }}</span>
+                    @endif
+                </a>
                 <x-dropdown align="right" width="48">
                     <x-slot name="trigger">
                         <button class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-gray-500 bg-white hover:text-gray-700 focus:outline-hidden transition ease-in-out duration-150">
@@ -130,7 +137,11 @@
             </x-responsive-nav-link>
 
             <x-responsive-nav-link :href="route('messages.index')" :active="request()->routeIs('messages.*')">
-                {{ __('Pesan') }}
+                {{ __('Pesan') }}@if ($unreadMessages > 0) ({{ $unreadMessages }})@endif
+            </x-responsive-nav-link>
+
+            <x-responsive-nav-link :href="route('notifications.index')" :active="request()->routeIs('notifications.*')">
+                {{ __('Notifikasi') }}@if ($unreadNotifications > 0) ({{ $unreadNotifications }})@endif
             </x-responsive-nav-link>
 
             <x-responsive-nav-link :href="route('services.index')" :active="request()->routeIs('services.*')">

@@ -12,6 +12,7 @@ use App\Models\Proposal;
 use App\Models\Service;
 use App\Models\ServicePackage;
 use App\Models\User;
+use App\Notifications\ActivityNotification;
 use App\Support\CommissionCalculator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -119,9 +120,13 @@ class OrderPlacement
             $proposal->status = ProposalStatus::Accepted;
             $proposal->save();
 
-            $project->proposals()
+            $rejected = $project->proposals()
                 ->whereKeyNot($proposal->id)
                 ->where('status', ProposalStatus::Pending)
+                ->with('freelancer')
+                ->get();
+
+            Proposal::whereKey($rejected->modelKeys())
                 ->update(['status' => ProposalStatus::Rejected, 'updated_at' => now()]);
 
             $project->status = ProjectStatus::InProgress;
@@ -148,6 +153,14 @@ class OrderPlacement
             $order->save();
 
             $order->recordHistory(null, OrderStatus::PendingPayment, $customer, __('Order dibuat dari penerimaan penawaran.'));
+
+            ActivityNotification::send($proposal->freelancer, __('Penawaran diterima'),
+                __('Penawaran Anda untuk :title diterima. Pekerjaan dimulai setelah customer membayar.', ['title' => $project->title]),
+                'orders.show', $order);
+
+            $rejected->each(fn (Proposal $other) => ActivityNotification::send($other->freelancer, __('Penawaran tidak dipilih'),
+                __('Customer memilih penawaran lain untuk :title.', ['title' => $project->title]),
+                'freelancer.proposals.index'));
 
             return $order;
         });

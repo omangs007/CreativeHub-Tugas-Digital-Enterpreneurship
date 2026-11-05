@@ -8,6 +8,7 @@ use App\Enums\PaymentStatus;
 use App\Models\Order;
 use App\Models\Payment;
 use App\Models\User;
+use App\Notifications\ActivityNotification;
 use App\Payments\PaymentGateway;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -159,6 +160,14 @@ class PaymentProcessor
 
         $order->transitionTo(OrderStatus::Paid, $actor, __('Pembayaran :code berhasil (simulasi).', ['code' => $payment->transaction_code]));
         $order->transitionTo(OrderStatus::InProgress, null, __('Freelancer dapat mulai mengerjakan pesanan.'));
+
+        ActivityNotification::send(
+            $order->freelancer,
+            __('Pesanan baru dibayar'),
+            __(':title (:number) sudah dibayar customer. Silakan mulai mengerjakan.', ['title' => $order->title, 'number' => $order->order_number]),
+            'orders.show',
+            $order,
+        );
     }
 
     /**

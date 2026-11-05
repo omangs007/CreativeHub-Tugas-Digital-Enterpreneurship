@@ -1315,3 +1315,40 @@ Pemeriksaan lain: Pint dan build OK; `curl -I` ke server dev menampilkan ketiga 
 - Foto profil (avatar upload), notifikasi email, dan chat real-time (saat ini polling).
 - Menaikkan `upload_max_filesize`/`post_max_size` PHP jika file hasil lebih dari 2 MB perlu diunggah langsung.
 - Rentang Hari 18–21 pada roadmap dapat dipakai untuk latihan demo, perbaikan dari masukan dosen, dan penyempurnaan visual.
+
+---
+
+## Hari 18 — Notifikasi Dashboard
+
+**Tanggal pengerjaan:** 5 November 2026
+**Branch:** `hari-18-notifikasi`, di-merge ke `master`
+**Status:** Selesai
+
+### Fitur yang dikerjakan
+
+- Tabel `notifications` (Laravel database notifications) dan kelas `ActivityNotification` (judul, isi, **path internal**).
+- **Notifikasi dikirim** di dalam transaksi yang sama dengan aksinya, sehingga ikut batal jika aksi gagal:
+  - **freelancer:** pesanan dibayar, revisi diminta, pesanan selesai, pesanan dibatalkan, penawaran diterima/tidak dipilih, layanan disetujui/ditolak (beserta alasan), ulasan baru;
+  - **customer:** penawaran baru di proyeknya, hasil pekerjaan dikirim.
+  - Pelaku aksi tidak menerima notifikasi atas aksinya sendiri.
+- **Navigasi:** ikon lonceng dengan jumlah belum dibaca (label aksesibel) dan badge jumlah **pesan chat belum dibaca** pada menu Pesan (desktop dan mobile).
+- **Halaman `/dashboard/notifications`:**
+  - daftar milik sendiri, tanda belum dibaca, "Tandai semua terbaca";
+  - membuka notifikasi menandainya terbaca lalu mengarah ke tautan;
+  - **hanya path internal** yang diikuti (`//evil…` diarahkan kembali ke daftar);
+  - notifikasi milik user lain memberi 404.
+
+### Hasil testing
+
+`php artisan test`: **272 passed (1348 assertions)**. Isinya 264 test sebelumnya ditambah 8 test di `NotificationTest`:
+
+- siklus pesanan (dibayar, dikirim, revisi, selesai) memberi notifikasi ke pihak lain;
+- penawaran baru, diterima, dan tidak dipilih;
+- moderasi layanan;
+- lonceng menampilkan jumlah dan halaman hanya berisi milik sendiri;
+- buka notifikasi menandai terbaca dan redirect hanya ke path internal;
+- notifikasi milik orang lain 404;
+- tandai semua terbaca;
+- badge pesan chat belum dibaca.
+
+Pemeriksaan lain: Pint dan build OK; `migrate` dev (DB `creativehub`) menjalankan tabel `notifications`.

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Order;
 use App\Models\Review;
+use App\Notifications\ActivityNotification;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -35,6 +36,10 @@ class ReviewController extends Controller
         } catch (UniqueConstraintViolationException) {
             throw ValidationException::withMessages(['rating' => __('Pesanan ini sudah diulas.')]);
         }
+
+        ActivityNotification::send($order->freelancer, __('Ulasan baru'),
+            __(':name memberi rating :rating untuk :title.', ['name' => $order->customer->name, 'rating' => $review->rating.'/5', 'title' => $order->title]),
+            'orders.show', $order);
 
         return Redirect::route('orders.show', $order)->with('status', 'review-created');
     }
