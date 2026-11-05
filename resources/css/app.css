@@ -6,8 +6,25 @@
 
 @theme {
   --font-sans:
-    Figtree, ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji',
+    'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji',
     'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+
+  /* Navy gelap untuk latar brand CreativeHub */
+  --color-ink-50: #f4f6fb;
+  --color-ink-100: #e6eaf4;
+  --color-ink-200: #c9d1e6;
+  --color-ink-300: #9ba8cc;
+  --color-ink-400: #6b7aa8;
+  --color-ink-500: #4b5888;
+  --color-ink-600: #36406b;
+  --color-ink-700: #262e52;
+  --color-ink-800: #1a2040;
+  --color-ink-900: #10152d;
+  --color-ink-950: #0a0d1f;
+
+  /* Aksen biru elektrik, dipadukan dengan palet violet bawaan Tailwind */
+  --color-electric-400: #5b8cff;
+  --color-electric-500: #3d6bff;
 }
 
 /*
@@ -19,6 +36,10 @@
   color utility to any element that depends on these defaults.
 */
 @layer base {
+  [x-cloak] {
+    display: none !important;
+  }
+
   *,
   ::after,
   ::before,

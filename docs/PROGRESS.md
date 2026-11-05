@@ -209,3 +209,124 @@ php artisan serve --host=127.0.0.1 --port=8000
 4. Halaman `/services` (katalog), `/categories/{slug}`, `/services/{slug}` (detail + paket Basic/Standard/Premium). Hanya layanan published yang tampil.
 5. Feature test: guest dapat melihat katalog; layanan draft tidak tampil; detail layanan menampilkan paket aktif.
 6. Update `docs/PROGRESS.md`.
+
+---
+
+## Hari 2 — Katalog Jasa Kreatif
+
+**Tanggal pengerjaan:** 5 November 2026
+**Branch:** `hari-2-katalog`, di-merge ke `master`
+**Status:** Selesai dan disetujui (5 November 2026)
+
+### Fitur yang dikerjakan
+
+- **Database:**
+  - `categories`: slug unik, `is_active`, `sort_order`, ikon.
+  - `services`: FK freelancer (cascade) dan kategori (restrict), slug unik, status `draft | pending_review | published | rejected` dengan CHECK constraint, index `(status, category_id)`.
+  - `service_packages`: harga BIGINT Rupiah dengan CHECK `price > 0`, CHECK `delivery_days > 0`, CHECK tier, unique `(service_id, tier)`.
+- **Model:**
+  - `Category`, `Service`, `ServicePackage`, serta enum `ServiceStatus` dan `PackageTier`.
+  - `status` dan `published_at` pada `Service` tidak fillable; status hanya diubah oleh alur moderasi.
+  - Scope `Service::publiclyVisible()`: status published, kategori aktif, dan minimal satu paket aktif.
+  - Scope `forCatalogCard()`: eager load relasi, harga mulai (min harga paket aktif), dan waktu tercepat.
+- **Seeder:**
+  - `CategorySeeder` idempoten (Roblox Map, Website Development, Poster & Graphic Design), dipanggil dari `DatabaseSeeder`.
+  - `CatalogDemoSeeder` (**data demo**, dijalankan terpisah): 3 akun freelancer demo dengan password acak, 6 layanan published, dan 1 layanan draf.
+- **Halaman publik:**
+  - `/`: hero dengan pencarian, kategori beserta jumlah layanan, 6 layanan terbaru, CTA, dan empty state.
+  - `/services`: pencarian judul (`ILIKE`, parameter `q`), filter kategori (parameter `kategori`), paginasi 12 per halaman, empty state.
+  - `/categories/{slug}`: 404 jika kategori nonaktif atau tidak ada.
+  - `/services/{slug}`: detail layanan, info freelancer, tab paket Basic/Standard/Premium (Alpine). Hanya paket aktif yang tampil. Layanan yang tidak published memberi 404.
+  - Tombol "Pesan Paket" dinonaktifkan dengan keterangan "Pemesanan dan checkout segera tersedia" (checkout dijadwalkan nanti).
+- **UI/brand:**
+  - Font Plus Jakarta Sans, palet navy `ink-*` dengan aksen violet dan `electric-*`, logo CreativeHub baru.
+  - Ikon Lucide inline (`<x-lucide>`).
+  - Layout publik responsif dengan menu mobile; layout Breeze memakai font yang sama dan memiliki link "Katalog Jasa".
+- **Helper:**
+  - `App\Support\Rupiah::format()` dan directive Blade `@rupiah(...)`, contoh `Rp1.250.000`.
+  - Tanggal memakai `translatedFormat('d F Y')`, contoh `03 November 2026`.
+- **Pencegahan N+1:** `Model::preventLazyLoading()` aktif di luar production.
+
+### File yang dibuat atau diubah
+
+```text
+app/Enums/ServiceStatus.php, app/Enums/PackageTier.php
+app/Models/Category.php, Service.php, ServicePackage.php, User.php (relasi services)
+app/Http/Controllers/HomeController.php, ServiceController.php, CategoryController.php
+app/Support/Rupiah.php
+app/View/Components/PublicLayout.php
+app/Providers/AppServiceProvider.php     (preventLazyLoading, @rupiah, kategori untuk navbar)
+database/migrations/2026_11_05_000003_create_categories_table.php
+database/migrations/2026_11_05_000004_create_services_table.php
+database/migrations/2026_11_05_000005_create_service_packages_table.php
+database/factories/CategoryFactory.php, ServiceFactory.php, ServicePackageFactory.php
+database/seeders/CategorySeeder.php, CatalogDemoSeeder.php, DatabaseSeeder.php
+routes/web.php
+resources/css/app.css                    (token warna, font, x-cloak)
+resources/views/layouts/public.blade.php
+resources/views/layouts/app.blade.php, guest.blade.php, navigation.blade.php
+resources/views/home.blade.php
+resources/views/services/index.blade.php, services/show.blade.php
+resources/views/categories/show.blade.php
+resources/views/components/lucide.blade.php, service-card.blade.php, service-cover.blade.php,
+    service-grid.blade.php, empty-state.blade.php, application-logo.blade.php
+resources/views/welcome.blade.php        (dihapus, tidak dipakai lagi)
+tests/Feature/Catalog/CatalogPageTest.php, ServiceDetailTest.php, CatalogDatabaseTest.php
+tests/Unit/RupiahTest.php
+```
+
+### Command yang dijalankan
+
+```powershell
+git switch -c hari-2-katalog
+php artisan migrate
+php artisan db:seed
+php artisan db:seed --class=CatalogDemoSeeder   # password demo -> C:\Users\admin\creativehub-demo-accounts.txt
+vendor/bin/pint
+npm run build
+php artisan test
+```
+
+### Hasil testing
+
+`php artisan test` (5 November 2026): **71 passed (189 assertions)**. Isinya 46 test Hari 1 ditambah 25 test baru:
+
+- `CatalogPageTest` (12): homepage, empty state, harga mulai, hanya published, kategori nonaktif tersembunyi, layanan tanpa paket tersembunyi, pencarian case-insensitive, filter kategori, paginasi, halaman kategori, 404 kategori.
+- `ServiceDetailTest` (5): detail dan paket berurutan dengan harga Rupiah, hanya paket aktif, 404 untuk draft/pending/rejected, 404 untuk kategori nonaktif, 404 untuk slug tidak dikenal.
+- `CatalogDatabaseTest` (7): seeder kategori idempoten, demo seeder idempoten dan draf tersembunyi, slug unik, satu paket per tier, harga > 0, CHECK status, status tidak mass-assignable.
+- `RupiahTest` (1).
+
+Pemeriksaan lain:
+
+- `vendor/bin/pint --test` passed; `npm run build` sukses.
+- HTTP:
+  - `/`, `/services`, `/services?q=poster`, `/services?kategori=roblox-map`, `/categories/website-development`, `/services/desain-map-obby-roblox-custom` → 200.
+  - Layanan draf `/services/desain-logo-minimalis` → 404; `/categories/tidak-ada` → 404.
+- Browser (Playwright):
+  - Homepage dan detail layanan dicek di 1366px; tab paket Premium berfungsi; tidak ada error console.
+  - Katalog mobile 375px tanpa horizontal overflow (`scrollWidth` = 375).
+
+### Error dan solusinya
+
+| Error / masalah | Solusi |
+|---|---|
+| `SvgNotFound: Svg by name "sparkles"`: komponen `<x-icon>` bentrok dengan komponen milik `blade-ui-kit/blade-icons` (dependensi Filament) | Komponen ikon diganti nama menjadi `<x-lucide>`. |
+| Kelas Tailwind dinamis `grid-cols-{{ n }}` tidak akan ter-generate | Diganti `match` dengan nama kelas literal. |
+| **`php artisan migrate:fresh --env=testing` me-reset database development**: tidak ada `.env.testing`, sehingga Laravel memakai `.env` | Yang hilang hanya data seed beberapa menit sebelumnya (database berisi 0 user sebelum seeding). Kategori dan katalog demo di-seed ulang; password akun demo dibuat ulang. **Jangan pakai `--env=testing`.** Test selalu memakai `creativehub_test` lewat `phpunit.xml`. |
+
+### Pekerjaan yang belum selesai / catatan
+
+- Commit Hari 2 dibuat dan di-merge ke `master` setelah persetujuan.
+- Akun demo: email `raka@`, `nadia@`, `dimas@demo.creativehub.test`; password ada di `C:\Users\admin\creativehub-demo-accounts.txt`.
+- Halaman profil publik freelancer `/freelancers/{id}` dan bagian "freelancer unggulan" di homepage belum ada (dijadwalkan bersama profil dan portofolio).
+- Rating belum ditampilkan karena belum ada ulasan; tidak memakai rating palsu.
+- Upload thumbnail belum ada; sampul memakai gradien per kategori.
+- Pesan validasi untuk parameter pencarian tidak valid (lebih dari 100 karakter) dikembalikan sebagai redirect validasi standar.
+
+### Rencana Hari 3 — Profil freelancer & portofolio
+
+1. Form edit profil freelancer (headline, bio, skills, availability, portfolio URL) dengan `FreelancerProfilePolicy::update`.
+2. Tabel `portfolio_items` dan upload gambar portofolio (validasi tipe, ukuran, nama file; disk `public`, `storage:link`).
+3. Halaman publik `/freelancers/{id}`: profil, skills, portofolio, layanan published milik freelancer.
+4. Link ke profil freelancer dari kartu dan detail layanan; bagian "Freelancer unggulan" di homepage dari data nyata.
+5. Feature test: hanya pemilik yang bisa mengubah profil dan portofolio, validasi upload, dan halaman publik tidak menampilkan layanan draf.

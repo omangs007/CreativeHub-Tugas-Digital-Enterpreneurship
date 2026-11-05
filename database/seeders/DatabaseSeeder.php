@@ -13,10 +13,10 @@ class DatabaseSeeder extends Seeder
      * Seed the application's database.
      *
      * Role dibuat oleh migration. Akun admin dibuat dengan `php artisan app:create-admin`.
-     * Data demo presentasi ditambahkan pada tahap UAT.
+     * Data demo katalog: `php artisan db:seed --class=CatalogDemoSeeder`.
      */
     public function run(): void
     {
-        //
+        $this->call(CategorySeeder::class);
     }
 }
