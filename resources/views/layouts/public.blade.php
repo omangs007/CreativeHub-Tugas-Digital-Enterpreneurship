@@ -24,6 +24,7 @@
 
                 <nav class="hidden items-center gap-8 text-sm font-medium text-ink-200 md:flex">
                     <a href="{{ route('services.index') }}" @class(['transition hover:text-white', 'text-white' => request()->routeIs('services.*')])>{{ __('Katalog Jasa') }}</a>
+                    <a href="{{ route('projects.index') }}" @class(['transition hover:text-white', 'text-white' => request()->routeIs('projects.*')])>{{ __('Proyek') }}</a>
                     @foreach ($navCategories as $navCategory)
                         <a href="{{ route('categories.show', $navCategory->slug) }}" @class(['transition hover:text-white', 'text-white' => request()->is('categories/'.$navCategory->slug)])>{{ $navCategory->name }}</a>
                     @endforeach
@@ -47,6 +48,7 @@
             <div x-show="open" x-cloak x-transition class="border-t border-white/10 px-4 pb-4 md:hidden">
                 <nav class="flex flex-col gap-1 pt-3 text-sm font-medium text-ink-200">
                     <a href="{{ route('services.index') }}" class="rounded-lg px-3 py-2 hover:bg-white/10 hover:text-white">{{ __('Katalog Jasa') }}</a>
+                    <a href="{{ route('projects.index') }}" class="rounded-lg px-3 py-2 hover:bg-white/10 hover:text-white">{{ __('Proyek') }}</a>
                     @foreach ($navCategories as $navCategory)
                         <a href="{{ route('categories.show', $navCategory->slug) }}" class="rounded-lg px-3 py-2 hover:bg-white/10 hover:text-white">{{ $navCategory->name }}</a>
                     @endforeach
@@ -91,6 +93,7 @@
                     <h2 class="text-sm font-semibold text-white">{{ __('CreativeHub') }}</h2>
                     <ul class="mt-4 space-y-2 text-sm">
                         <li><a href="{{ route('services.index') }}" class="hover:text-white">{{ __('Katalog Jasa') }}</a></li>
+                        <li><a href="{{ route('projects.index') }}" class="hover:text-white">{{ __('Proyek Terbuka') }}</a></li>
                         @guest
                             <li><a href="{{ route('register') }}" class="hover:text-white">{{ __('Daftar') }}</a></li>
                             <li><a href="{{ route('login') }}" class="hover:text-white">{{ __('Masuk') }}</a></li>

@@ -614,3 +614,64 @@ Pemeriksaan lain:
 2. Customer membuat, mengedit, dan menutup proyek miliknya (`/dashboard/projects`). Edit hanya saat status open.
 3. Halaman publik `/projects` (proyek open, filter kategori) dan `/projects/{id}`.
 4. `ProjectPolicy`, feature test kepemilikan, validasi anggaran dan tenggat, visibilitas publik.
+
+---
+
+## Hari 6 — Proyek Customer
+
+**Tanggal pengerjaan:** 5 November 2026
+**Branch:** `hari-6-proyek-customer`, di-merge ke `master`
+**Status:** Selesai
+
+### Fitur yang dikerjakan
+
+- **Tabel `projects`:**
+  - `customer_id` (cascade), `category_id` (restrict), judul, deskripsi.
+  - `budget_min`/`budget_max` integer Rupiah opsional dengan CHECK `min ≤ max`.
+  - `deadline`, status `open|in_progress|completed|closed` dengan CHECK, `closed_at`.
+  - Index `(status, category_id)` dan `customer_id`.
+- **Model `Project`:**
+  - `customer_id`, `status`, `closed_at` tidak fillable.
+  - Scope `publiclyVisible()`: status open dan kategori aktif.
+  - `close()` hanya untuk proyek open.
+  - `budgetLabel()`: rentang, mulai, hingga, atau "Anggaran fleksibel".
+- **Dashboard customer `/dashboard/projects`** (middleware `role:customer` + `ProjectPolicy`):
+  - Daftar milik sendiri, posting, detail, edit (hanya saat open), tutup proyek.
+  - Proyek langsung tampil publik saat dibuat; tidak ada moderasi khusus proyek di MVP, hanya validasi.
+- **Validasi `ProjectRequest`:**
+  - Judul 10–150, kategori aktif, deskripsi 30–5000.
+  - Anggaran opsional Rp10.000–Rp1.000.000.000 dengan format "500.000" diterima; maksimum ≥ minimum.
+  - Tenggat opsional, setelah hari ini dan maksimal 1 tahun.
+- **Publik:**
+  - `/projects`: proyek open di kategori aktif, pencarian judul, filter kategori, paginasi, empty state.
+  - `/projects/{id}`: hanya proyek open (lainnya 404), tanpa email customer.
+  - Kartu penawaran berisi placeholder sampai Hari 7.
+- **Navigasi:** "Proyek" di header dan footer publik, "Proyek Saya" untuk customer di dashboard.
+- **Refactor:**
+  - `Rupiah::normalizeInput()` dipakai bersama oleh `ServiceRequest` dan `ProjectRequest`.
+  - Komponen generik `<x-status-badge>` untuk enum yang memiliki `getLabel()`/`getColor()`.
+
+### Hasil testing
+
+`php artisan test`: **144 passed (560 assertions)**. Isinya 131 test sebelumnya ditambah 13 test baru:
+
+- `ProjectManagementTest` (8): guest/admin-only ditolak; buat proyek (input `status`/`customer_id` palsu diabaikan, anggaran "500.000" diterima); validasi judul/kategori/deskripsi/anggaran/tenggat; anggaran dan tenggat opsional; hanya proyek sendiri; edit hanya saat open; customer lain 403; tutup sekali.
+- `PublicProjectTest` (5): hanya proyek open di kategori aktif; pencarian dan filter; detail publik hanya saat open dan tanpa email; empty state; CHECK anggaran terbalik.
+
+Pemeriksaan lain:
+
+- Pint dan build OK.
+- `migrate` dev (DB `creativehub`) menjalankan 1 migration.
+- `/projects` → 200, `/dashboard/projects` (guest) → 302.
+
+### Catatan
+
+- Data demo proyek belum ada; akan ditambahkan pada seeder demo lengkap (tahap UAT).
+
+### Rencana Hari 7 — Proposal freelancer dan penerimaan proposal
+
+1. Tabel `proposals` (proyek, freelancer, harga integer, estimasi hari, pesan, status `pending|accepted|rejected|withdrawn`); unique aktif per freelancer per proyek.
+2. Freelancer mengirim, mengubah, dan menarik proposal pada proyek open milik orang lain.
+3. Customer melihat proposal di detail proyeknya dan menerima **satu** proposal (transaksi + `lockForUpdate`). Proposal lain otomatis ditolak dan proyek menjadi `in_progress`.
+4. Tabel `orders` (sumber tepat satu: paket **atau** proposal, snapshot judul/harga/scope, status `pending_payment`…), dan `order_status_histories`. Penerimaan proposal membuat order `pending_payment`.
+5. Feature test aturan bisnis: tidak bisa menawar proyek sendiri, satu proposal aktif, hanya proyek open, hanya satu diterima (termasuk percobaan ganda), snapshot order benar.

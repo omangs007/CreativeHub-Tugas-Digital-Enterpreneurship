@@ -52,6 +52,11 @@ class User extends Authenticatable implements FilamentUser
         return $this->hasMany(Service::class);
     }
 
+    public function projects(): HasMany
+    {
+        return $this->hasMany(Project::class, 'customer_id');
+    }
+
     public function portfolioItems(): HasMany
     {
         return $this->hasMany(PortfolioItem::class);

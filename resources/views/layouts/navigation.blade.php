@@ -20,6 +20,12 @@
                         {{ __('Katalog Jasa') }}
                     </x-nav-link>
 
+                    @if (Auth::user()->hasRole(\App\Enums\RoleName::Customer))
+                        <x-nav-link :href="route('customer.projects.index')" :active="request()->routeIs('customer.projects.*')">
+                            {{ __('Proyek Saya') }}
+                        </x-nav-link>
+                    @endif
+
                     @if (Auth::user()->hasRole(\App\Enums\RoleName::Freelancer))
                         <x-nav-link :href="route('freelancer.services.index')" :active="request()->routeIs('freelancer.services.*')">
                             {{ __('Layanan Saya') }}
@@ -98,6 +104,12 @@
             <x-responsive-nav-link :href="route('services.index')" :active="request()->routeIs('services.*')">
                 {{ __('Katalog Jasa') }}
             </x-responsive-nav-link>
+
+            @if (Auth::user()->hasRole(\App\Enums\RoleName::Customer))
+                <x-responsive-nav-link :href="route('customer.projects.index')" :active="request()->routeIs('customer.projects.*')">
+                    {{ __('Proyek Saya') }}
+                </x-responsive-nav-link>
+            @endif
 
             @if (Auth::user()->hasRole(\App\Enums\RoleName::Freelancer))
                 <x-responsive-nav-link :href="route('freelancer.services.index')" :active="request()->routeIs('freelancer.services.*')">

@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Enums\PackageTier;
+use App\Support\Rupiah;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
@@ -26,10 +27,8 @@ class ServiceRequest extends FormRequest
         }
 
         foreach ($packages as $tier => $package) {
-            $price = is_array($package) ? ($package['price'] ?? null) : null;
-
-            if (is_string($price) && preg_match('/^\d{1,3}(\.\d{3})+$/', trim($price))) {
-                $packages[$tier]['price'] = str_replace('.', '', trim($price));
+            if (is_array($package) && array_key_exists('price', $package)) {
+                $packages[$tier]['price'] = Rupiah::normalizeInput($package['price']);
             }
         }
 
