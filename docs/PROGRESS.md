@@ -1412,3 +1412,39 @@ Seluruh halaman publik sudah bersih sejak awal.
 - Audit ulang 17 halaman utama: **0 masalah**. Menu hamburger mobile berfungsi (`aria-expanded=true`, tautan Notifikasi tampil).
 - Polling chat: setelah cookie sesi dihapus, hanya **1** request gagal dalam 13 detik lalu polling berhenti dan pesan tampil.
 - `php artisan test`: 277 passed; Pint dan build OK. Data audit sementara dihapus (dev: 7 user, 7 pesanan demo).
+
+---
+
+## Hari 21 — Regresi Akhir dan Panduan Demo
+
+**Tanggal pengerjaan:** 5 November 2026
+**Branch:** `hari-21-final`, di-merge ke `master`
+**Status:** Selesai. **Roadmap 21 hari tuntas.**
+
+### Yang dikerjakan
+
+- **Simulasi instalasi dari nol** di database terpisah `creativehub_test` (nama database diverifikasi lebih dulu; DB dev tidak tersentuh):
+  - `migrate:fresh --seed` berhasil, 23 langkah migrasi dan seed DONE;
+  - `DemoSeeder` berhasil: 7 user, 7 layanan, 7 pesanan, 7 pembayaran, 10 notifikasi.
+- **Kebersihan repo:**
+  - tidak ada `.env`, SQLite, atau file password yang ter-commit;
+  - tidak ada `dd()`/`dump()`/`var_dump()`;
+  - tidak ada password uji sementara di kode aplikasi;
+  - `composer audit` dan `npm audit` 0 kerentanan.
+- **`docs/DEMO.md`:** naskah presentasi ±15 menit dengan persiapan, checklist, 6 segmen (Guest → Customer & pembayaran & struk → Proyek & penawaran → Pengerjaan & ulasan → Admin & laporan keuangan → bukti kualitas), dan tabel penanganan masalah saat demo.
+- `README.md` diperbarui: fitur notifikasi, chat, dan foto profil, grafik admin, tautan ke naskah demo.
+
+### Regresi akhir
+
+- `php artisan test`: **277 passed (1378 assertions)**, ±42 detik.
+- `vendor/bin/pint --test` passed; `npm run build` sukses.
+- Smoke test server dev: `/`, `/services`, `/projects`, `/login`, `/admin/login`, `/up` → 200.
+
+### Ringkasan akhir
+
+| Area | Jumlah |
+|---|---|
+| Commit hari kerja di `master` | 21 |
+| Migration | 18 file (PostgreSQL, CHECK constraint, unique index parsial, FK) |
+| Test otomatis | 277 (1378 assertions) |
+| Kebutuhan wajib dosen | Pembayaran simulasi ✅ · Struk cetak/PDF ✅ · Laporan keuangan filter + PDF ✅ · ≥ 2 aktor (4 peran) ✅ · Database relasional + seeder ✅ |

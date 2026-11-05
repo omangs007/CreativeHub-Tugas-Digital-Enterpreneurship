@@ -13,7 +13,8 @@ Aplikasi hanya dijalankan di komputer lokal.
 | **Guest** | Beranda, katalog jasa (cari, filter kategori dan harga, urutan), detail jasa dan paket, profil freelancer dan portofolio, daftar proyek terbuka, daftar/masuk |
 | **Customer** | Pesan paket, posting proyek, terima satu penawaran, **pembayaran simulasi** (QRIS/VA/e-wallet; berhasil, pending, gagal), **struk** (cetak dan PDF), tinjau hasil, minta revisi, selesaikan pesanan, ulasan, chat, batalkan pesanan yang belum dibayar |
 | **Freelancer** | Profil, portofolio (upload gambar), CRUD layanan dan paket Basic/Standard/Premium, ajukan review, kirim penawaran, kirim hasil (file privat/tautan), chat, ringkasan pendapatan |
-| **Admin** (`/admin`) | Dasbor statistik, moderasi layanan (setujui/tolak), kategori, pengguna (aktif/nonaktif), pesanan dan pembayaran (hanya baca), ulasan, proyek, portofolio, **pengaturan komisi**, **audit log**, **laporan keuangan** (filter tanggal dan preset, cetak, PDF) |
+| **Semua user login** | Notifikasi aktivitas (lonceng), chat dengan badge belum dibaca, foto profil |
+| **Admin** (`/admin`) | Dasbor statistik dan grafik omzet 30 hari, moderasi layanan (setujui/tolak), kategori, pengguna (aktif/nonaktif), pesanan dan pembayaran (hanya baca), ulasan, proyek, portofolio, **pengaturan komisi**, **audit log**, **laporan keuangan** (filter tanggal dan preset, cetak, PDF) |
 
 Satu akun bisa menjadi Customer sekaligus Freelancer (aktifkan dari halaman Profil). Admin hanya dibuat lewat perintah artisan.
 
@@ -78,6 +79,8 @@ php artisan serve --host=127.0.0.1 --port=8000
 Data transaksi demo mencakup pesanan selesai dengan ulasan, sedang dikerjakan, menunggu tinjauan, menunggu pembayaran, pembayaran gagal, dan dibatalkan. Tanggalnya tersebar di bulan lalu dan bulan ini agar filter laporan bisa didemonstrasikan. Seeder aman dijalankan berulang.
 
 ## Skenario demo
+
+Naskah presentasi lengkap (± 15 menit, langkah demi langkah): [`docs/DEMO.md`](docs/DEMO.md).
 
 1. **Customer membeli paket:** masuk sebagai customer, Katalog, pilih jasa, **Pesan Paket**, setujui, **Bayar Sekarang**, pilih metode, **Simulasikan Berhasil**, lalu **Lihat/Cetak Struk** atau **Unduh PDF**.
 2. **Proyek dan penawaran:** customer **Posting Proyek**; freelancer lain mengirim penawaran dari halaman proyek; customer **Terima Penawaran** (penawaran lain otomatis ditolak); pesanan dibuat dan dibayar.
