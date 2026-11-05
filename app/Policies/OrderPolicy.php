@@ -40,6 +40,16 @@ class OrderPolicy
         return $order->customer_id === $user->id && $order->status === OrderStatus::Delivered;
     }
 
+    /**
+     * Ulasan hanya oleh customer pemilik, setelah pesanan selesai, satu kali.
+     */
+    public function reviewOrder(User $user, Order $order): bool
+    {
+        return $order->customer_id === $user->id
+            && $order->status === OrderStatus::Completed
+            && ! $order->review()->exists();
+    }
+
     public function create(User $user): bool
     {
         return false;

@@ -17,6 +17,9 @@
                         <span class="size-1.5 rounded-full bg-current"></span>{{ $profile->availability->label() }}
                     </span>
                     <span>{{ __('Bergabung :date', ['date' => $freelancer->created_at->translatedFormat('F Y')]) }}</span>
+                    @if ($ratingCount > 0)
+                        <x-star-rating :rating="$ratingAvg" :count="$ratingCount" class="[&_.text-gray-500]:text-ink-300" />
+                    @endif
                     @if ($profile->portfolio_url)
                         <a href="{{ $profile->portfolio_url }}" target="_blank" rel="noopener noreferrer nofollow" class="font-semibold text-violet-300 hover:text-white">
                             {{ __('Portofolio eksternal') }} &nearr;
@@ -61,6 +64,25 @@
                     @endif
                 </div>
             </section>
+
+            @if ($reviews->isNotEmpty())
+                <section>
+                    <h2 class="text-2xl font-extrabold tracking-tight">{{ __('Ulasan terbaru') }}</h2>
+                    <div class="mt-6 grid gap-4 sm:grid-cols-2">
+                        @foreach ($reviews as $review)
+                            <article class="rounded-2xl bg-white p-5 ring-1 ring-ink-100">
+                                <div class="flex items-center justify-between gap-3">
+                                    <span class="font-semibold">{{ $review->customer->name }}</span>
+                                    <x-star-rating :rating="$review->rating" size="text-sm" />
+                                </div>
+                                @if ($review->comment)
+                                    <p class="mt-2 text-sm text-ink-700">{{ $review->comment }}</p>
+                                @endif
+                            </article>
+                        @endforeach
+                    </div>
+                </section>
+            @endif
 
             <section>
                 <h2 class="text-2xl font-extrabold tracking-tight">{{ __('Portofolio') }}</h2>

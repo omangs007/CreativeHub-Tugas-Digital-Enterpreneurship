@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\CheckoutController;
+use App\Http\Controllers\ConversationController;
 use App\Http\Controllers\CustomerProjectController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EarningsController;
@@ -18,6 +19,7 @@ use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\ProposalController;
 use App\Http\Controllers\ProposalDecisionController;
 use App\Http\Controllers\ReceiptController;
+use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\ServiceController;
 use Illuminate\Support\Facades\Route;
 
@@ -47,6 +49,14 @@ Route::middleware('auth')->group(function () {
     Route::post('/dashboard/orders/{order}/revisions', [OrderWorkflowController::class, 'requestRevision'])->name('orders.revisions.store');
     Route::post('/dashboard/orders/{order}/complete', [OrderWorkflowController::class, 'complete'])->name('orders.complete');
     Route::get('/dashboard/deliveries/{delivery}/download', [OrderWorkflowController::class, 'download'])->name('deliveries.download');
+    Route::post('/dashboard/orders/{order}/review', [ReviewController::class, 'store'])->name('orders.review');
+
+    Route::get('/dashboard/messages', [ConversationController::class, 'index'])->name('messages.index');
+    Route::get('/dashboard/messages/{conversation}', [ConversationController::class, 'show'])->name('messages.show');
+    Route::get('/dashboard/messages/{conversation}/poll', [ConversationController::class, 'poll'])->middleware('throttle:60,1')->name('messages.poll');
+    Route::post('/dashboard/messages/{conversation}', [ConversationController::class, 'store'])->middleware('throttle:30,1')->name('messages.store');
+    Route::get('/dashboard/orders/{order}/chat', [ConversationController::class, 'startForOrder'])->name('orders.chat');
+    Route::get('/dashboard/proposals/{proposal}/chat', [ConversationController::class, 'startForProposal'])->name('proposals.chat');
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');

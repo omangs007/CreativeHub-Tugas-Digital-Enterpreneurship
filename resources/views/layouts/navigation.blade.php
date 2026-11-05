@@ -20,6 +20,10 @@
                         {{ __('Pesanan') }}
                     </x-nav-link>
 
+                    <x-nav-link :href="route('messages.index')" :active="request()->routeIs('messages.*')">
+                        {{ __('Pesan') }}
+                    </x-nav-link>
+
                     @if (Auth::user()->hasRole(\App\Enums\RoleName::Customer))
                         <x-nav-link :href="route('customer.projects.index')" :active="request()->routeIs('customer.projects.*')">
                             {{ __('Proyek Saya') }}
@@ -123,6 +127,10 @@
 
             <x-responsive-nav-link :href="route('orders.index')" :active="request()->routeIs('orders.*')">
                 {{ __('Pesanan') }}
+            </x-responsive-nav-link>
+
+            <x-responsive-nav-link :href="route('messages.index')" :active="request()->routeIs('messages.*')">
+                {{ __('Pesan') }}
             </x-responsive-nav-link>
 
             <x-responsive-nav-link :href="route('services.index')" :active="request()->routeIs('services.*')">

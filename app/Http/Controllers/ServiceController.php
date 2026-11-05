@@ -76,8 +76,13 @@ class ServiceController extends Controller
             ])
             ->firstOrFail();
 
+        $reviews = $service->reviews()->visible()->with('customer')->latest()->limit(10)->get();
+
         return view('services.show', [
             'service' => $service,
+            'reviews' => $reviews,
+            'ratingAvg' => $service->reviews()->visible()->avg('rating'),
+            'ratingCount' => $service->reviews()->visible()->count(),
             'packages' => $service->activePackages->sortBy(fn ($package) => $package->tier->sortOrder())->values(),
         ]);
     }

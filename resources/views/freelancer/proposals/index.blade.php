@@ -40,6 +40,8 @@
                             <div class="flex flex-wrap items-center gap-4 text-sm font-semibold">
                                 @if ($proposal->order)
                                     <a href="{{ route('orders.show', $proposal->order) }}" class="text-violet-600 hover:text-violet-700">{{ __('Lihat pesanan') }}</a>
+                                @else
+                                    <a href="{{ route('proposals.chat', $proposal) }}" class="text-violet-600 hover:text-violet-700">{{ __('Chat customer') }}</a>
                                 @endif
                                 @can('update', $proposal)
                                     <a href="{{ route('freelancer.proposals.edit', $proposal) }}" class="text-gray-700 hover:text-gray-900">{{ __('Edit') }}</a>

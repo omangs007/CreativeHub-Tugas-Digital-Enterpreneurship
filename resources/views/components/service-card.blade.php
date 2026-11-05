@@ -14,6 +14,9 @@
                 {{ Str::upper(Str::substr($service->freelancer->name, 0, 1)) }}
             </span>
             <span class="truncate">{{ $service->freelancer->name }}</span>
+            @if (($service->rating_count ?? 0) > 0)
+                <x-star-rating :rating="$service->rating_avg" :count="$service->rating_count" size="text-sm" class="ml-auto shrink-0" />
+            @endif
         </div>
 
         <div class="mt-auto flex items-end justify-between border-t border-ink-100 pt-4">

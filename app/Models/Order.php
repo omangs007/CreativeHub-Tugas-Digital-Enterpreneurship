@@ -88,6 +88,16 @@ class Order extends Model
         return $this->hasOne(Payment::class)->where('status', PaymentStatus::Success);
     }
 
+    public function review(): HasOne
+    {
+        return $this->hasOne(Review::class);
+    }
+
+    public function conversation(): HasOne
+    {
+        return $this->hasOne(Conversation::class);
+    }
+
     public function deliveries(): HasMany
     {
         return $this->hasMany(OrderDelivery::class);

@@ -58,6 +58,9 @@ class FreelancerProfileController extends Controller
             'freelancer' => $user,
             'profile' => $user->freelancerProfile,
             'services' => $services,
+            'ratingAvg' => $user->receivedReviews()->visible()->avg('rating'),
+            'ratingCount' => $user->receivedReviews()->visible()->count(),
+            'reviews' => $user->receivedReviews()->visible()->with('customer')->latest()->limit(5)->get(),
         ]);
     }
 }

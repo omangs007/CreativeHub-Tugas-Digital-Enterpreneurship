@@ -72,6 +72,11 @@ class Service extends Model
         return $this->hasMany(Order::class);
     }
 
+    public function reviews(): HasMany
+    {
+        return $this->hasMany(Review::class);
+    }
+
     public function activePackages(): HasMany
     {
         return $this->packages()->where('is_active', true);
@@ -112,7 +117,9 @@ class Service extends Model
     {
         $query->with(['category', 'freelancer'])
             ->withMin('activePackages as starting_price', 'price')
-            ->withMin('activePackages as fastest_delivery_days', 'delivery_days');
+            ->withMin('activePackages as fastest_delivery_days', 'delivery_days')
+            ->withAvg(['reviews as rating_avg' => fn (Builder $q) => $q->where('is_visible', true)], 'rating')
+            ->withCount(['reviews as rating_count' => fn (Builder $q) => $q->where('is_visible', true)]);
     }
 
     /**

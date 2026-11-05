@@ -5,7 +5,14 @@
                 <p class="font-mono text-xs text-gray-500">{{ $order->order_number }}</p>
                 <h2 class="font-semibold text-xl text-gray-800 leading-tight">{{ $order->title }}</h2>
             </div>
-            <x-status-badge :status="$order->status" class="text-sm" />
+            <div class="flex items-center gap-3">
+                @if ($order->involves(auth()->user()))
+                    <a href="{{ route('orders.chat', $order) }}" class="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-semibold text-gray-700 hover:bg-gray-50">
+                        {{ __('Chat dengan :name', ['name' => $order->customer_id === auth()->id() ? $order->freelancer->name : $order->customer->name]) }}
+                    </a>
+                @endif
+                <x-status-badge :status="$order->status" class="text-sm" />
+            </div>
         </div>
     </x-slot>
 
@@ -20,7 +27,8 @@
                         'order-created' => __('Pesanan dibuat dan menunggu pembayaran.'),
                         'order-delivered' => __('Hasil pekerjaan terkirim ke customer.'),
                         'revision-requested' => __('Permintaan revisi terkirim ke freelancer.'),
-                        'order-completed' => __('Pesanan selesai. Terima kasih!'),
+                        'order-completed' => __('Pesanan selesai. Terima kasih! Jangan lupa beri ulasan.'),
+                        'review-created' => __('Terima kasih atas ulasan Anda.'),
                         default => '',
                     } }}
                 </p>
@@ -123,6 +131,43 @@
                                 </div>
                             @endcan
                         </section>
+                    @endif
+
+                    @if ($order->review)
+                        <section class="p-4 sm:p-6 bg-white shadow-sm sm:rounded-lg">
+                            <h3 class="font-semibold text-gray-900">{{ __('Ulasan customer') }}</h3>
+                            <x-star-rating :rating="$order->review->rating" class="mt-2" />
+                            @if ($order->review->comment)
+                                <p class="mt-2 whitespace-pre-line text-sm text-gray-700">{{ $order->review->comment }}</p>
+                            @endif
+                            @unless ($order->review->is_visible)
+                                <p class="mt-2 text-xs text-amber-700">{{ __('Ulasan ini disembunyikan oleh admin.') }}</p>
+                            @endunless
+                        </section>
+                    @elseif (Gate::allows('reviewOrder', $order))
+                        <form method="post" action="{{ route('orders.review', $order) }}" class="p-4 sm:p-6 bg-white shadow-sm sm:rounded-lg space-y-4" x-data="{ rating: {{ (int) old('rating', 5) }} }">
+                            @csrf
+                            <h3 class="font-semibold text-gray-900">{{ __('Beri ulasan') }}</h3>
+                            <fieldset>
+                                <legend class="text-sm text-gray-600">{{ __('Rating untuk :name', ['name' => $order->freelancer->name]) }}</legend>
+                                <div class="mt-2 flex gap-1">
+                                    @foreach (range(1, 5) as $star)
+                                        <label class="cursor-pointer">
+                                            <input type="radio" name="rating" value="{{ $star }}" x-model.number="rating" class="sr-only">
+                                            <span class="text-3xl leading-none" :class="rating >= {{ $star }} ? 'text-amber-400' : 'text-gray-300'" aria-hidden="true">&#9733;</span>
+                                            <span class="sr-only">{{ __(':n bintang', ['n' => $star]) }}</span>
+                                        </label>
+                                    @endforeach
+                                </div>
+                                <x-input-error class="mt-1" :messages="$errors->get('rating')" />
+                            </fieldset>
+                            <div>
+                                <x-input-label for="comment" :value="__('Komentar (opsional)')" />
+                                <textarea id="comment" name="comment" rows="3" maxlength="1000" class="mt-1 block w-full rounded-md border-gray-300 shadow-xs focus:border-indigo-500 focus:ring-indigo-500">{{ old('comment') }}</textarea>
+                                <x-input-error class="mt-1" :messages="$errors->get('comment')" />
+                            </div>
+                            <x-primary-button>{{ __('Kirim Ulasan') }}</x-primary-button>
+                        </form>
                     @endif
 
                     <section class="p-4 sm:p-6 bg-white shadow-sm sm:rounded-lg">

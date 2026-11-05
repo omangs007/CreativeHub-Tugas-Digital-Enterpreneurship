@@ -1030,3 +1030,54 @@ Pemeriksaan lain: Pint dan build OK.
 1. Tabel `conversations` (satu per order, dan satu per pasangan proyek–freelancer untuk diskusi penawaran) dan `messages`. Hanya peserta yang bisa membaca dan mengirim (policy). Polling sederhana (Alpine `setInterval` atau Livewire `wire:poll`) tanpa layanan real-time eksternal.
 2. Tabel `reviews`: satu ulasan per order, hanya oleh customer setelah order `completed`, rating 1–5 dan komentar; tampil di detail layanan dan profil freelancer; rata-rata rating di kartu layanan (data nyata).
 3. Feature test akses percakapan, satu ulasan per order, dan ulasan hanya untuk order selesai.
+
+---
+
+## Hari 13 — Chat dan Ulasan
+
+**Tanggal pengerjaan:** 5 November 2026
+**Branch:** `hari-13-chat-ulasan`, di-merge ke `master`
+**Status:** Selesai
+
+### Fitur yang dikerjakan
+
+- **Tabel `conversations`:** tepat satu subjek, yaitu order **atau** proposal (CHECK). `order_id` dan `proposal_id` unik, peserta customer dan freelancer (CHECK berbeda), `last_message_at`.
+- **Tabel `messages`:** pengirim, isi, `read_at`.
+- **Chat** (`ConversationController`, `ConversationPolicy`):
+  - Percakapan dibuka dari halaman pesanan ("Chat dengan …") atau dari penawaran ("Tanya freelancer" / "Chat customer").
+  - Peserta diambil dari order atau proposal, bukan dari input. Pembuatan bersamaan aman (unique index + ambil ulang).
+  - **Hanya dua peserta** yang bisa membuka, polling, dan mengirim. Admin juga tidak bisa membaca chat privat.
+  - Pesan maksimal 2000 karakter, kirim dibatasi throttle 30/menit, polling 60/menit.
+  - **Polling HTTP** setiap 4 detik (`/poll?after=id`, JSON) dan kirim pesan via `fetch` (CSRF), tanpa layanan real-time eksternal. Isi pesan dirender dengan `x-text` sehingga HTML/script tidak dieksekusi.
+  - Kotak masuk `/dashboard/messages` dengan pesan terakhir dan jumlah belum dibaca. Pesan lawan bicara ditandai terbaca saat percakapan dibuka. Menu **Pesan** ada di navigasi.
+- **Tabel `reviews`:**
+  - `order_id` unik (satu ulasan per pesanan), layanan, customer, freelancer.
+  - Rating dengan CHECK 1–5, komentar ≤ 1000, `is_visible` untuk moderasi admin.
+- **Ulasan:**
+  - Form bintang di halaman pesanan, hanya untuk customer pemilik setelah pesanan `completed` dan sekali saja (`OrderPolicy::reviewOrder`).
+  - Tampil di detail layanan (rata-rata dan daftar), profil freelancer (rata-rata dan ulasan terbaru), dan kartu layanan (rating rata-rata dari **data nyata**).
+  - Ulasan yang disembunyikan admin tidak tampil publik. Komponen `<x-star-rating>`.
+
+### Hasil testing
+
+`php artisan test`: **237 passed (1088 assertions)**. Isinya 223 test sebelumnya ditambah 14 test baru:
+
+- `ChatTest` (8): peserta membuka dan memakai ulang percakapan; orang luar dan admin 403; kirim dan baca serta tanda terbaca; polling hanya pesan baru (script dikembalikan sebagai teks JSON); orang luar tidak bisa baca/poll/kirim; validasi pesan; chat penawaran dibatasi pada pemilik proyek dan pengirim penawaran; kotak masuk hanya milik sendiri.
+- `ReviewTest` (6): ulasan sekali untuk pesanan selesai; harus pesanan selesai dan milik customer; validasi rating; CHECK rating di database; tampil di kartu, detail, dan profil; ulasan tersembunyi tidak tampil.
+
+Pemeriksaan lain:
+
+- Pint dan build OK; `migrate` dev (DB `creativehub`) menjalankan 1 migration.
+- **Uji browser chat** dengan customer **sementara** dan order ke freelancer demo:
+  - pesan terkirim lewat UI;
+  - `<b>tes</b>` tampil sebagai teks;
+  - balasan yang dimasukkan dari server muncul otomatis lewat polling dalam waktu kurang dari 15 detik.
+  - Data uji dibersihkan; dev kembali berisi 3 user, 0 order, 0 percakapan.
+
+### Rencana Hari 14 — Panel admin: pengguna, pesanan, pembayaran, ulasan, komisi
+
+1. Filament **Pengguna**: daftar dengan peran, status akun aktif/nonaktif (kolom baru `is_active`). Akun nonaktif tidak bisa login. Admin tidak bisa menonaktifkan dirinya sendiri. Semua perubahan dicatat di audit log.
+2. Filament **Pesanan** (hanya baca + riwayat status) dan **Pembayaran** (hanya baca + event). Nilai transaksi tidak bisa diubah dari panel.
+3. Filament **Ulasan**: tampilkan/sembunyikan dengan audit log. **Proyek** dan **Portofolio**: moderasi sederhana (tutup proyek, sembunyikan portofolio).
+4. **Pengaturan komisi** (tabel `settings`): persentase komisi diubah admin dengan audit log; berlaku untuk order baru saja.
+5. Feature test otorisasi dan audit untuk setiap aksi admin.

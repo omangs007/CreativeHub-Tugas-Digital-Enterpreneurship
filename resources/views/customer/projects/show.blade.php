@@ -105,6 +105,7 @@
                                     @csrf
                                     <button type="submit" class="rounded-md border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50">{{ __('Tolak') }}</button>
                                 </form>
+                                <a href="{{ route('proposals.chat', $proposal) }}" class="rounded-md px-4 py-2 text-sm font-semibold text-violet-700 hover:bg-violet-50">{{ __('Tanya freelancer') }}</a>
                             </div>
                         @endcan
                     </article>

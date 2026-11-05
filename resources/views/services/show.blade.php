@@ -52,6 +52,32 @@
                         @endif
                     </section>
                 @endif
+
+                <section class="mt-10" id="ulasan">
+                    <div class="flex flex-wrap items-center gap-3">
+                        <h2 class="text-xl font-bold">{{ __('Ulasan') }}</h2>
+                        @if ($ratingCount > 0)
+                            <x-star-rating :rating="$ratingAvg" :count="$ratingCount" />
+                        @endif
+                    </div>
+                    @forelse ($reviews as $review)
+                        <article class="mt-4 rounded-2xl bg-white p-5 ring-1 ring-ink-100">
+                            <div class="flex items-center justify-between gap-3">
+                                <div class="flex items-center gap-2">
+                                    <x-avatar :name="$review->customer->name" class="size-8 text-sm" />
+                                    <span class="font-semibold">{{ $review->customer->name }}</span>
+                                </div>
+                                <x-star-rating :rating="$review->rating" size="text-sm" />
+                            </div>
+                            @if ($review->comment)
+                                <p class="mt-3 whitespace-pre-line text-sm text-ink-700">{{ $review->comment }}</p>
+                            @endif
+                            <p class="mt-2 text-xs text-ink-400">{{ $review->created_at->translatedFormat('d F Y') }}</p>
+                        </article>
+                    @empty
+                        <p class="mt-3 text-sm text-ink-500">{{ __('Belum ada ulasan untuk layanan ini.') }}</p>
+                    @endforelse
+                </section>
             </article>
 
             <aside>
