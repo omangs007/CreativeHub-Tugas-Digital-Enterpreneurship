@@ -42,6 +42,11 @@
                                         <span class="text-xs text-gray-500">{{ $service->category->name }}</span>
                                     </div>
                                     <h3 class="mt-1 truncate font-semibold text-gray-900">{{ $service->title }}</h3>
+                                    @if ($service->status === \App\Enums\ServiceStatus::Rejected && $service->rejection_reason)
+                                        <p class="mt-1 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
+                                            <span class="font-semibold">{{ __('Alasan penolakan:') }}</span> {{ $service->rejection_reason }}
+                                        </p>
+                                    @endif
                                     <p class="mt-1 text-sm text-gray-500">
                                         @if ($service->active_packages_count > 0)
                                             {{ __(':count paket aktif · mulai :price', ['count' => $service->active_packages_count, 'price' => \App\Support\Rupiah::format($service->starting_price)]) }}

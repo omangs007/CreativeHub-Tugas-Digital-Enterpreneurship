@@ -2,7 +2,10 @@
 
 namespace App\Enums;
 
-enum ServiceStatus: string
+use Filament\Support\Contracts\HasColor;
+use Filament\Support\Contracts\HasLabel;
+
+enum ServiceStatus: string implements HasColor, HasLabel
 {
     case Draft = 'draft';
     case PendingReview = 'pending_review';
@@ -16,6 +19,21 @@ enum ServiceStatus: string
             self::PendingReview => 'Menunggu Review',
             self::Published => 'Dipublikasikan',
             self::Rejected => 'Ditolak',
+        };
+    }
+
+    public function getLabel(): string
+    {
+        return $this->label();
+    }
+
+    public function getColor(): string
+    {
+        return match ($this) {
+            self::Draft => 'gray',
+            self::PendingReview => 'warning',
+            self::Published => 'success',
+            self::Rejected => 'danger',
         };
     }
 }

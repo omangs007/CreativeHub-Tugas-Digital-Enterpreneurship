@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\ServiceStatus;
+use App\Support\AuditLogger;
 use Database\Factories\ServiceFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
@@ -10,6 +11,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
@@ -41,12 +43,18 @@ class Service extends Model
         return [
             'status' => ServiceStatus::class,
             'published_at' => 'datetime',
+            'moderated_at' => 'datetime',
         ];
     }
 
     public function freelancer(): BelongsTo
     {
         return $this->belongsTo(User::class, 'user_id');
+    }
+
+    public function moderator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'moderated_by');
     }
 
     public function category(): BelongsTo
@@ -75,6 +83,19 @@ class Service extends Model
         $query->where('status', ServiceStatus::Published)
             ->whereHas('category', fn (Builder $q) => $q->where('is_active', true))
             ->whereHas('activePackages');
+    }
+
+    /**
+     * Filter berdasarkan harga mulai (harga paket aktif termurah).
+     *
+     * @param  Builder<Service>  $query
+     */
+    public function scopeStartingPriceBetween(Builder $query, ?int $min, ?int $max): void
+    {
+        $startingPrice = '(select min(price) from service_packages where service_packages.service_id = services.id and service_packages.is_active = true)';
+
+        $query->when($min !== null, fn (Builder $q) => $q->whereRaw("{$startingPrice} >= ?", [$min]))
+            ->when($max !== null, fn (Builder $q) => $q->whereRaw("{$startingPrice} <= ?", [$max]));
     }
 
     /**
@@ -124,7 +145,82 @@ class Service extends Model
         }
 
         $this->status = ServiceStatus::PendingReview;
+        $this->rejection_reason = null;
         $this->save();
+    }
+
+    /**
+     * Admin menyetujui layanan yang menunggu review sehingga tampil di katalog.
+     *
+     * @throws ValidationException
+     */
+    public function approve(User $admin): void
+    {
+        $this->ensurePendingReview();
+
+        DB::transaction(function () use ($admin) {
+            $old = $this->only(['status', 'rejection_reason']);
+
+            $this->status = ServiceStatus::Published;
+            $this->published_at = now();
+            $this->rejection_reason = null;
+            $this->moderated_by = $admin->id;
+            $this->moderated_at = now();
+            $this->save();
+
+            AuditLogger::record('service.approved', $this, $this->serializeForAudit($old), ['status' => $this->status->value], $admin);
+        });
+    }
+
+    /**
+     * Admin menolak layanan dengan alasan yang ditampilkan ke freelancer.
+     *
+     * @throws ValidationException
+     */
+    public function reject(User $admin, string $reason): void
+    {
+        $this->ensurePendingReview();
+
+        if (trim($reason) === '') {
+            throw ValidationException::withMessages(['reason' => __('Alasan penolakan wajib diisi.')]);
+        }
+
+        DB::transaction(function () use ($admin, $reason) {
+            $old = $this->only(['status', 'rejection_reason']);
+
+            $this->status = ServiceStatus::Rejected;
+            $this->published_at = null;
+            $this->rejection_reason = trim($reason);
+            $this->moderated_by = $admin->id;
+            $this->moderated_at = now();
+            $this->save();
+
+            AuditLogger::record('service.rejected', $this, $this->serializeForAudit($old), [
+                'status' => $this->status->value,
+                'rejection_reason' => $this->rejection_reason,
+            ], $admin);
+        });
+    }
+
+    /**
+     * @throws ValidationException
+     */
+    private function ensurePendingReview(): void
+    {
+        if ($this->status !== ServiceStatus::PendingReview) {
+            throw ValidationException::withMessages([
+                'service' => __('Hanya layanan yang menunggu review yang dapat dimoderasi.'),
+            ]);
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $values
+     * @return array<string, mixed>
+     */
+    private function serializeForAudit(array $values): array
+    {
+        return array_map(fn ($value) => $value instanceof \BackedEnum ? $value->value : $value, $values);
     }
 
     /**

@@ -552,3 +552,65 @@ Tidak ada error berarti.
 4. Widget dashboard admin sederhana: jumlah layanan menunggu review, total freelancer, total layanan published.
 5. Filter katalog tambahan: rentang harga (min/maks) dan urutan (terbaru, harga terendah/tertinggi).
 6. Feature test: hanya admin yang bisa moderasi, transisi status valid, alasan penolakan wajib, audit log tercatat, dan filter harga benar.
+
+---
+
+## Hari 5 — Moderasi Admin, Kategori, Audit Log, Filter Harga
+
+**Tanggal pengerjaan:** 5 November 2026
+**Branch:** `hari-5-moderasi-admin`, di-merge ke `master`
+**Status:** Selesai (mode lanjut terus sesuai instruksi; commit dan merge per hari)
+
+### Fitur yang dikerjakan
+
+- **Migration:**
+  - `services`: kolom `rejection_reason`, `moderated_by` (FK users, `nullOnDelete`), `moderated_at`.
+  - Tabel `audit_logs` (append-only): pelaku, aksi, objek polymorphic, `old_values`/`new_values` jsonb, IP, waktu.
+- **Moderasi** (model `Service::approve()` / `reject()`, hanya dari `pending_review`):
+  - Setujui mengubah status menjadi `published`, mengisi `published_at`, dan mencatat moderator.
+  - Tolak wajib alasan (minimal 10 karakter di form). Alasan ditampilkan di dashboard freelancer.
+  - Pengajuan ulang menghapus alasan penolakan lama.
+  - Setiap moderasi dicatat ke audit log dalam transaksi yang sama.
+- **Filament (panel `/admin`, semua via policy):**
+  - **Layanan**: tabel (judul, freelancer, kategori, badge status, harga mulai), filter status/kategori, halaman detail berisi paket, aksi **Setujui**/**Tolak** (`ServicePolicy::moderate`: admin + status pending). Admin tidak bisa membuat atau mengedit konten freelancer. Menu menampilkan badge jumlah layanan pending.
+  - **Kategori**: CRUD, slug otomatis dari nama saat dibuat, slug unik dan alpha-dash, pilihan ikon, urutan, aktif/nonaktif. Kategori yang sudah dipakai layanan tidak bisa dihapus (`CategoryPolicy::delete`). Bulk delete dimatikan. Perubahan dicatat ke audit log lewat `CategoryObserver`; perubahan dari seeder/console tidak dicatat.
+  - **Audit Log**: hanya baca (`AuditLogPolicy`), filter aksi, ringkasan nilai sebelum/sesudah.
+  - **Dasbor**: widget statistik (layanan menunggu review dengan tautan filter, layanan published, jumlah freelancer, jumlah customer). Widget info Filament dihapus. Grup navigasi: Katalog, Transaksi, Pengguna, Sistem.
+- **Filter katalog `/services`:**
+  - Harga mulai `harga_min`/`harga_maks`, dihitung dari paket aktif termurah (subquery).
+  - Urutan `urut=terbaru|termurah|termahal`.
+  - Nilai tidak valid diabaikan, bukan menghasilkan error.
+  - Filter dipertahankan saat berpindah kategori, dan ada tombol Reset.
+- `ServiceStatus` mengimplementasikan `HasLabel`/`HasColor` milik Filament untuk badge.
+
+### Hasil testing
+
+`php artisan test`: **131 passed (493 assertions)**. Isinya 110 test sebelumnya ditambah 21 test baru:
+
+- `ServiceModerationTest` (9): admin melihat daftar dan detail; non-admin 403; setujui (status, moderator, tampil publik, audit log); tolak dengan alasan tampil ke freelancer; alasan wajib; aksi tersembunyi untuk status non-pending; transisi tidak valid ditolak model; pengajuan ulang menghapus alasan; widget dasbor.
+- `CategoryAdminTest` (7): buat kategori dengan audit log; slug unik dan valid; nonaktifkan kategori dengan audit dan 404 publik; kategori terpakai tidak bisa dihapus; non-admin 403 untuk kategori dan audit log; admin membaca audit log; seeder tidak tercatat.
+- `CatalogFilterTest` (5): rentang harga, paket nonaktif diabaikan, urutan harga, nilai tidak valid diabaikan, filter dipertahankan di tautan.
+
+Pemeriksaan lain:
+
+- Pint passed; build sukses.
+- `migrate` di database dev (dicek dulu: `creativehub`) menjalankan 2 migration baru.
+- **Browser:** login dengan akun admin **sementara**. Dasbor `/admin` tampil dalam Bahasa Indonesia, badge "1" di menu Layanan, widget terisi. Setelah itu akun dihapus dan layanan demo yang sempat diajukan dikembalikan ke draf.
+
+### Error dan solusinya
+
+| Masalah | Solusi |
+|---|---|
+| Test dasbor gagal karena widget Filament dimuat lazy (isi belum ada di HTML awal) | `$isLazy = false` pada `MarketplaceStats` |
+| Grup navigasi "Sistem" tampil di atas "Katalog" | `->navigationGroups([...])` di `AdminPanelProvider` |
+
+### Catatan
+
+- Akun admin untuk demo dibuat sendiri oleh pengguna dengan `php artisan app:create-admin`.
+
+### Rencana Hari 6 — Proyek customer
+
+1. Tabel `projects` (customer, kategori, judul, deskripsi, anggaran min/maks opsional dalam integer Rupiah, tenggat, status `open|in_progress|completed|cancelled|closed`).
+2. Customer membuat, mengedit, dan menutup proyek miliknya (`/dashboard/projects`). Edit hanya saat status open.
+3. Halaman publik `/projects` (proyek open, filter kategori) dan `/projects/{id}`.
+4. `ProjectPolicy`, feature test kepemilikan, validasi anggaran dan tenggat, visibilitas publik.
