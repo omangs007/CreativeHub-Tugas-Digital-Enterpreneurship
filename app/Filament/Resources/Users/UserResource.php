@@ -2,19 +2,29 @@
 
 namespace App\Filament\Resources\Users;
 
+use App\Enums\RoleName;
+use App\Filament\Resources\Users\Pages\CreateUser;
+use App\Filament\Resources\Users\Pages\EditUser;
 use App\Filament\Resources\Users\Pages\ListUsers;
 use App\Models\User;
 use App\Support\AuditLogger;
 use BackedEnum;
 use Filament\Actions\Action;
+use Filament\Actions\EditAction;
+use Filament\Forms\Components\CheckboxList;
+use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
+use Illuminate\Validation\Rules\Password;
 use UnitEnum;
 
 class UserResource extends Resource
@@ -30,6 +40,57 @@ class UserResource extends Resource
     protected static ?string $navigationLabel = 'Pengguna';
 
     protected static string|UnitEnum|null $navigationGroup = 'Pengguna';
+
+    public static function form(Schema $schema): Schema
+    {
+        return $schema->components([
+            Section::make('Akun')->columns(2)->schema([
+                TextInput::make('name')
+                    ->label('Nama')
+                    ->required()
+                    ->maxLength(255),
+                TextInput::make('email')
+                    ->email()
+                    ->required()
+                    ->maxLength(255)
+                    ->unique(ignoreRecord: true)
+                    ->dehydrateStateUsing(fn (?string $state) => mb_strtolower(trim((string) $state))),
+                CheckboxList::make('role_names')
+                    ->label('Peran')
+                    ->options(collect(RoleName::cases())->mapWithKeys(fn (RoleName $r) => [$r->value => $r->label()])->all())
+                    ->required()
+                    ->columns(3)
+                    ->helperText('Satu akun boleh Customer sekaligus Freelancer. Profil freelancer dibuat otomatis.')
+                    // Admin tidak dapat mencabut peran Admin dari akunnya sendiri.
+                    ->disableOptionWhen(fn (string $value, ?User $record) => $value === RoleName::Admin->value && $record?->is(auth()->user()))
+                    ->columnSpanFull(),
+            ]),
+            Section::make('Foto profil')->schema([
+                FileUpload::make('avatar_path')
+                    ->hiddenLabel()
+                    ->image()
+                    ->avatar()
+                    ->disk('public')
+                    ->directory(fn (?User $record) => 'avatars/'.($record?->id ?? 'baru'))
+                    ->visibility('public')
+                    ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])
+                    ->maxSize(1024)
+                    ->helperText('JPG, PNG, atau WebP, maksimal 1 MB. Kosongkan untuk memakai inisial nama.'),
+            ]),
+            Section::make('Password')->schema([
+                TextInput::make('password')
+                    ->label(fn (string $operation) => $operation === 'create' ? 'Password awal' : 'Reset password')
+                    ->password()
+                    ->revealable()
+                    ->rule(Password::defaults())
+                    ->required(fn (string $operation) => $operation === 'create')
+                    ->dehydrated(fn (?string $state) => filled($state))
+                    ->helperText(fn (string $operation) => $operation === 'create'
+                        ? 'Berikan password ini kepada pemilik akun dan minta ia menggantinya di halaman Profil.'
+                        : 'Kosongkan jika tidak ingin mengganti password.'),
+            ]),
+        ]);
+    }
 
     public static function table(Table $table): Table
     {
@@ -48,6 +109,7 @@ class UserResource extends Resource
                 TernaryFilter::make('is_active')->label('Status akun')->trueLabel('Aktif')->falseLabel('Nonaktif'),
             ])
             ->recordActions([
+                EditAction::make(),
                 Action::make('toggleActive')
                     ->label(fn (User $record) => $record->is_active ? 'Nonaktifkan' : 'Aktifkan')
                     ->icon(fn (User $record) => $record->is_active ? Heroicon::OutlinedNoSymbol : Heroicon::OutlinedCheckCircle)
@@ -73,6 +135,8 @@ class UserResource extends Resource
     {
         return [
             'index' => ListUsers::route('/'),
+            'create' => CreateUser::route('/create'),
+            'edit' => EditUser::route('/{record}/edit'),
         ];
     }
 }

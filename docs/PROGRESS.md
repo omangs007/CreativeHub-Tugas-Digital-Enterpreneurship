@@ -1448,3 +1448,22 @@ Seluruh halaman publik sudah bersih sejak awal.
 | Migration | 20 file (PostgreSQL, CHECK constraint, unique index parsial, FK) |
 | Test otomatis | 277 (1378 assertions) |
 | Kebutuhan wajib dosen | Pembayaran simulasi ✅ · Struk cetak/PDF ✅ · Laporan keuangan filter + PDF ✅ · ≥ 2 aktor (4 peran) ✅ · Database relasional + seeder ✅ |
+
+---
+
+## Tambahan — Admin Mengelola Pengguna
+
+**Tanggal pengerjaan:** 5 November 2026 (permintaan setelah Hari 21)
+**Branch:** `admin-kelola-pengguna`, di-merge ke `master`
+
+### Fitur yang dikerjakan
+
+- Halaman Pengguna di panel admin sekarang punya tombol Tambah Pengguna dan Ubah, selain Aktifkan/Nonaktifkan.
+- Tambah: nama, email (dinormalkan huruf kecil, unik), peran Customer/Freelancer/Admin, foto, password awal. Email langsung terverifikasi; profil freelancer dibuat otomatis.
+- Ubah: nama, email, peran, foto (unggah/ganti/hapus; file lama dihapus), dan reset password (kosongkan untuk mempertahankan password lama).
+- Pengaman: admin tidak bisa mencabut peran Admin dari akunnya sendiri (opsi dinonaktifkan di form dan ditolak di server); minimal satu peran; akun tidak dihapus agar riwayat transaksi tetap utuh.
+- Semua perubahan lewat service UserAdministration dan dicatat di audit log (user.created_by_admin, user.updated_by_admin) beserta nilai lama/baru. Password tidak pernah ditulis ke audit log (hanya keterangan direset admin).
+
+### Hasil testing
+
+php artisan test: 285 passed (1439 assertions). 8 test baru di AdminUserManagementTest: tambah freelancer lalu bisa login, validasi, ubah peran + reset password + audit tanpa password, password kosong tidak mengubah password, unggah/hapus foto, tidak bisa mencabut admin sendiri, non-admin 403, aksi tersedia di tabel (tanpa hapus). Browser: halaman Ubah Pengguna tampil lengkap.
