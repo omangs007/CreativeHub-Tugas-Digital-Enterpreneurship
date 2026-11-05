@@ -10,6 +10,7 @@ use App\Support\AvatarImage;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
+use RuntimeException;
 
 /**
  * Pengelolaan akun oleh admin (panel Filament). Setiap perubahan dicatat di audit log;
@@ -36,7 +37,7 @@ class UserAdministration
 
             $user->forceFill([
                 'email_verified_at' => now(),
-                'avatar_path' => $avatar ? AvatarImage::normalize($avatar, $user->id) : null,
+                'avatar_path' => $avatar ? $this->normalizeAvatar($avatar, $user->id) : null,
             ])->save();
 
             $this->syncRoles($user, $roles);
@@ -69,9 +70,12 @@ class UserAdministration
         $oldAvatar = $user->avatar_path;
         $newAvatar = $data['avatar_path'] ?? null;
 
-        // Foto baru (berbeda dari yang tersimpan) diperkecil menjadi 512×512 WebP.
         if ($newAvatar && $newAvatar !== $oldAvatar) {
-            $newAvatar = AvatarImage::normalize($newAvatar, $user->id);
+            $newAvatar = Storage::disk(self::AVATAR_DISK)->exists($newAvatar)
+                // Foto baru diperkecil menjadi 512×512 WebP.
+                ? $this->normalizeAvatar($newAvatar, $user->id)
+                // Path yang sudah tidak ada (misalnya sisa form lama) dianggap tidak berubah.
+                : $oldAvatar;
         }
 
         DB::transaction(function () use ($user, $data, $roles, $admin, $oldAvatar, $newAvatar) {
@@ -118,6 +122,22 @@ class UserAdministration
         }
 
         return $user->refresh();
+    }
+
+    /**
+     * @throws ValidationException
+     */
+    private function normalizeAvatar(string $path, int $userId): string
+    {
+        try {
+            return AvatarImage::normalize($path, $userId);
+        } catch (RuntimeException) {
+            Storage::disk(self::AVATAR_DISK)->delete($path);
+
+            throw ValidationException::withMessages([
+                'data.avatar_path' => __('Berkas foto tidak dapat dibaca sebagai gambar. Gunakan JPG, PNG, atau WebP lain.'),
+            ]);
+        }
     }
 
     /**

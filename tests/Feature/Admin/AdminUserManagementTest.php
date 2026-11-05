@@ -8,11 +8,13 @@ use App\Filament\Resources\Users\Pages\EditUser;
 use App\Filament\Resources\Users\Pages\ListUsers;
 use App\Models\AuditLog;
 use App\Models\User;
+use App\Services\UserAdministration;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 use Livewire\Livewire;
 use Tests\TestCase;
 
@@ -137,6 +139,46 @@ class AdminUserManagementTest extends TestCase
         $this->assertNull($user->fresh()->avatar_path);
         Storage::disk('public')->assertMissing($path);
         $this->assertSame('dihapus', AuditLog::where('action', 'user.updated_by_admin')->latest('id')->first()->new_values['avatar']);
+    }
+
+    public function test_saving_twice_after_photo_upload_does_not_fail(): void
+    {
+        $user = User::factory()->freelancer()->create();
+
+        // Regresi: setelah simpan pertama, form masih memegang path upload asli
+        // (yang sudah diganti menjadi WebP). Simpan kedua tidak boleh error 500.
+        $page = Livewire::actingAs($this->admin)
+            ->test(EditUser::class, ['record' => $user->getRouteKey()])
+            ->fillForm(['avatar_path' => UploadedFile::fake()->image('foto.png', 600, 600)])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $saved = $user->fresh()->avatar_path;
+        $this->assertStringEndsWith('.webp', $saved);
+
+        $page->fillForm(['name' => 'Nama Setelah Simpan Kedua'])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $user->refresh();
+        $this->assertSame('Nama Setelah Simpan Kedua', $user->name);
+        $this->assertSame($saved, $user->avatar_path);
+        Storage::disk('public')->assertExists($saved);
+    }
+
+    public function test_unreadable_image_gives_validation_error_not_500(): void
+    {
+        $user = User::factory()->freelancer()->create();
+        Storage::disk('public')->put('avatars/rusak.png', 'bukan gambar');
+
+        $this->expectException(ValidationException::class);
+
+        app(UserAdministration::class)->update($user, [
+            'name' => $user->name,
+            'email' => $user->email,
+            'role_names' => ['customer', 'freelancer'],
+            'avatar_path' => 'avatars/rusak.png',
+        ], $this->admin);
     }
 
     public function test_admin_cannot_remove_own_admin_role(): void

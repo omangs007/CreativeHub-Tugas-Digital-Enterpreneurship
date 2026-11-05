@@ -7,6 +7,8 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Redirect;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
+use RuntimeException;
 
 /**
  * Foto profil user yang sedang login. Nama file dibuat acak oleh server.
@@ -29,7 +31,16 @@ class AvatarController extends Controller
 
         // Foto besar diperkecil otomatis menjadi 512×512 WebP.
         $stored = $request->file('avatar')->store("avatars/{$user->id}", self::DISK);
-        $user->avatar_path = AvatarImage::normalize($stored, $user->id);
+
+        try {
+            $user->avatar_path = AvatarImage::normalize($stored, $user->id);
+        } catch (RuntimeException) {
+            Storage::disk(self::DISK)->delete($stored);
+
+            throw ValidationException::withMessages([
+                'avatar' => __('Berkas foto tidak dapat dibaca sebagai gambar. Gunakan JPG, PNG, atau WebP lain.'),
+            ])->errorBag('avatar');
+        }
         $user->save();
 
         if ($old) {

@@ -27,4 +27,13 @@ class EditUser extends EditRecord
     {
         return app(UserAdministration::class)->update($record, $data, auth()->user());
     }
+
+    /**
+     * Isi ulang form dari database: foto yang diunggah sudah diganti versi WebP, sehingga
+     * path upload asli di form tidak boleh dipakai lagi pada simpan berikutnya.
+     */
+    protected function afterSave(): void
+    {
+        $this->fillForm();
+    }
 }
