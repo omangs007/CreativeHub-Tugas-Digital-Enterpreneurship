@@ -77,6 +77,23 @@
                             <p class="mt-1">
                                 {{ $isCustomer ? __('Lakukan pembayaran agar freelancer dapat mulai bekerja.') : __('Pekerjaan dimulai setelah customer membayar.') }}
                             </p>
+                            @can('pay', $order)
+                                <a href="{{ route('payments.checkout', $order) }}" class="mt-4 block rounded-md bg-violet-600 px-4 py-2 text-center font-semibold text-white hover:bg-violet-500">{{ __('Bayar Sekarang') }}</a>
+                            @endcan
+                        </section>
+                    @endif
+
+                    @if ($isCustomer && $order->payments->isNotEmpty())
+                        <section class="p-4 sm:p-6 bg-white shadow-sm sm:rounded-lg text-sm">
+                            <h3 class="font-semibold text-gray-900">{{ __('Transaksi pembayaran') }}</h3>
+                            <ul class="mt-3 space-y-2">
+                                @foreach ($order->payments as $payment)
+                                    <li class="flex items-center justify-between gap-2">
+                                        <a href="{{ route('payments.show', $payment) }}" class="font-mono text-xs text-violet-700 hover:underline">{{ $payment->transaction_code }}</a>
+                                        <x-status-badge :status="$payment->status" />
+                                    </li>
+                                @endforeach
+                            </ul>
                         </section>
                     @endif
                 </aside>

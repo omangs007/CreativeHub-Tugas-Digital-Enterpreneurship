@@ -800,3 +800,86 @@ Pemeriksaan lain: Pint dan build OK; `migrate` dev (DB `creativehub`) menjalanka
 4. Simulasi hasil **berhasil, pending, gagal** diproses di server (POST + CSRF + otorisasi + idempotensi + `lockForUpdate`). URL "sukses" saja tidak mengubah status.
 5. Pembayaran berhasil: order menjadi `paid` lalu `in_progress`, dengan riwayat status. Transaksi tidak boleh diproses dua kali.
 6. Feature test: hanya customer pemilik yang bisa membayar, nominal dari server, idempotensi, pembayaran gagal tidak mengubah order, redirect sukses palsu tidak berpengaruh.
+
+---
+
+## Hari 9 — Pembayaran Simulasi (Dummy Payment Gateway)
+
+**Tanggal pengerjaan:** 5 November 2026
+**Branch:** `hari-9-pembayaran-dummy`, di-merge ke `master`
+**Status:** Selesai
+
+### Fitur yang dikerjakan
+
+- **Tabel `payments`:**
+  - `transaction_code` unik `TRX-yyyymmdd-XXXXXXXX`, order (restrict), customer, metode, provider (`dummy`), referensi (QR/VA/e-wallet dummy).
+  - Snapshot nominal integer: amount, komisi, bagian freelancer.
+  - Status `pending|success|failed|expired|cancelled`; `expires_at` (24 jam), `paid_at`, `failed_at`.
+  - CHECK metode, status, `amount = komisi + freelancer`, `success ⇒ paid_at`.
+  - **Unique parsial: satu `success` per order dan satu `pending` per order.**
+- **Tabel `payment_events`** (append-only): event, status dari/ke, user, payload, IP, waktu.
+- **Arsitektur adapter:**
+  - Interface `App\Payments\PaymentGateway` (`name`, `createCharge`, `supportsSimulation`) dengan implementasi `DummyPaymentGateway`.
+  - Binding di `AppServiceProvider`, sehingga provider sungguhan bisa ditambahkan dengan mengganti binding.
+  - Tidak ada klaim terhubung ke provider asli.
+- **`PaymentProcessor`:**
+  - `start()`: kunci order, pastikan customer pemilik dan status `pending_payment`, batalkan tagihan menunggu lama (ganti metode), buat tagihan dengan nominal **dari order**, log `created`.
+  - `applyResult()` (pada integrasi sungguhan dipanggil oleh handler notifikasi yang terverifikasi; pada demo dipanggil tombol simulasi):
+    - kunci payment dan order;
+    - **idempoten**: hasil yang sama untuk transaksi final dicatat `duplicate_ignored`, hasil berbeda ditolak;
+    - tagihan kedaluwarsa disimpan sebagai `expired` lalu ditolak;
+    - **berhasil**: cek nominal sama dengan total order, ubah payment menjadi success, order `paid` lalu `in_progress` dengan riwayat;
+    - **gagal**: payment failed, order tetap menunggu, bisa bayar ulang;
+    - **pending**: hanya dicatat.
+- **UI:**
+  - `/checkout/{order}` (customer pemilik dan order pending): pilih QRIS, Virtual Account, atau E-Wallet (semuanya "Simulasi").
+  - `/payments/{id}`: instruksi dummy (QR ilustrasi yang tidak bisa dipindai, nomor VA dummy, referensi e-wallet), tombol **Simulasikan Berhasil / Pending / Gagal** (POST + CSRF + throttle 30/menit), dan log transaksi.
+  - Banner **"Mode Demo — pembayaran tidak menggunakan uang sungguhan"** di semua halaman pembayaran, dengan peringatan untuk tidak memasukkan kartu, PIN, OTP, atau kata sandi bank.
+  - Halaman pesanan menampilkan tombol **Bayar Sekarang** dan daftar transaksi untuk customer.
+- **Otorisasi (`PaymentPolicy`):** detail transaksi untuk customer pemilik dan admin; simulasi hanya oleh customer pemilik. Admin dan freelancer tidak bisa mensimulasikan. `OrderPolicy::pay` untuk memulai pembayaran.
+
+### Hasil testing
+
+`php artisan test`: **198 passed (890 assertions)**. Isinya 184 test sebelumnya ditambah 14 test di `DummyPaymentTest`:
+
+- checkout menampilkan banner demo, 3 metode, dan total, serta tombol Bayar Sekarang;
+- hanya customer pemilik yang bisa memulai pembayaran (freelancer, customer lain, dan admin 403);
+- nominal dari server walau browser mengirim `amount=1`, referensi dan kode transaksi valid, mengganti metode membatalkan tagihan lama;
+- metode tidak valid ditolak;
+- simulasi berhasil: order `paid` lalu `in_progress` beserta riwayat dan event;
+- **berhasil hanya diproses sekali** (duplikat dicatat, hasil berbeda ditolak, order lunas tidak bisa ditagih lagi);
+- gagal: order tetap pending lalu bisa bayar ulang hingga berhasil;
+- pending tidak mengubah apa pun;
+- **membuka URL "sukses" (GET dengan `?status=success`) tidak mengubah status**, dan GET ke endpoint simulasi menghasilkan 405;
+- hanya pemilik yang bisa melihat dan mensimulasikan, admin hanya melihat;
+- hasil simulasi tidak valid ditolak;
+- tagihan kedaluwarsa ditolak dan berstatus expired;
+- nominal yang dimanipulasi di database ditolak;
+- database menolak dua pembayaran sukses per order.
+
+Pemeriksaan lain:
+
+- Pint dan build OK; `migrate` dev (DB `creativehub`) menjalankan 1 migration.
+- **Uji browser end-to-end** dengan customer **sementara**: login, konfirmasi paket Standard "Desain Poster Event & Promosi", Buat Pesanan, Bayar Sekarang, QRIS, Simulasikan Berhasil.
+  - Hasil di database: order `in_progress` dengan `paid_at` terisi, payment `success` Rp150.000, riwayat `pending_payment, paid, in_progress`, event `created, simulated_success`.
+  - Data uji dihapus setelahnya; dev kembali berisi 3 user dan 0 order.
+
+### Error dan solusinya
+
+| Masalah | Solusi |
+|---|---|
+| Status `expired` ikut ter-rollback karena exception dilempar di dalam transaksi | Flag `$expired` ditandai di dalam transaksi, exception dilempar setelah commit |
+| Test riwayat status gagal karena order dari factory tidak punya riwayat awal | `setUp` mencatat riwayat `pending_payment` seperti alur aplikasi |
+
+### Catatan
+
+- **UX (belum diperbaiki):** setelah login, Breeze mengarahkan ke "intended URL". Jika sesi sebelumnya pernah membuka `/admin`, user non-admin bisa mendarat di halaman 403. Akan dirapikan pada hari keamanan/UX.
+- Integrasi Midtrans tidak dilakukan; arsitektur adapter sudah siap jika diperlukan.
+
+### Rencana Hari 10 — Struk pembayaran (cetak dan PDF)
+
+1. Halaman struk `/dashboard/receipts/{payment}` untuk pembayaran berhasil: identitas CreativeHub, nomor transaksi, tanggal, customer, freelancer, layanan/paket, rincian harga, komisi, total, metode, status, dan keterangan simulasi. Semua data dari database.
+2. CSS cetak yang rapi (tombol cetak browser) dan **unduh PDF** (DomPDF bila kompatibel dengan Laravel 13).
+3. Otorisasi: customer pemilik dan admin; freelancer dan customer lain 403; pembayaran non-sukses 404.
+4. Daftar pembayaran customer `/dashboard/payments`.
+5. Feature test akses, isi struk, dan respons PDF.

@@ -3,6 +3,8 @@
 namespace App\Providers;
 
 use App\Models\Category;
+use App\Payments\DummyPaymentGateway;
+use App\Payments\PaymentGateway;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\View;
@@ -15,7 +17,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        // MVP memakai gateway simulasi. Ganti binding ini saat integrasi provider sungguhan.
+        $this->app->bind(PaymentGateway::class, DummyPaymentGateway::class);
     }
 
     /**

@@ -8,6 +8,7 @@ use App\Http\Controllers\FreelancerProfileController;
 use App\Http\Controllers\FreelancerServiceController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\OrderController;
+use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\PortfolioController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProjectController;
@@ -31,6 +32,10 @@ Route::get('/dashboard', function () {
 Route::middleware('auth')->group(function () {
     Route::get('/checkout/package/{package}', [CheckoutController::class, 'create'])->name('checkout.package');
     Route::post('/checkout/package/{package}', [CheckoutController::class, 'store'])->name('checkout.package.store');
+    Route::get('/checkout/{order}', [PaymentController::class, 'checkout'])->whereNumber('order')->name('payments.checkout');
+    Route::post('/checkout/{order}/payments', [PaymentController::class, 'start'])->whereNumber('order')->name('payments.start');
+    Route::get('/payments/{payment}', [PaymentController::class, 'show'])->name('payments.show');
+    Route::post('/payments/{payment}/simulate', [PaymentController::class, 'simulate'])->middleware('throttle:30,1')->name('payments.simulate');
     Route::get('/dashboard/orders', [OrderController::class, 'index'])->name('orders.index');
     Route::get('/dashboard/orders/{order}', [OrderController::class, 'show'])->name('orders.show');
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');

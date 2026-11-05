@@ -3,11 +3,13 @@
 namespace App\Models;
 
 use App\Enums\OrderStatus;
+use App\Enums\PaymentStatus;
 use Database\Factories\OrderFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
@@ -74,6 +76,16 @@ class Order extends Model
     public function proposal(): BelongsTo
     {
         return $this->belongsTo(Proposal::class);
+    }
+
+    public function payments(): HasMany
+    {
+        return $this->hasMany(Payment::class);
+    }
+
+    public function successfulPayment(): HasOne
+    {
+        return $this->hasOne(Payment::class)->where('status', PaymentStatus::Success);
     }
 
     public function statusHistories(): HasMany
