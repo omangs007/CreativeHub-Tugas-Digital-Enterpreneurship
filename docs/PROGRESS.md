@@ -883,3 +883,46 @@ Pemeriksaan lain:
 3. Otorisasi: customer pemilik dan admin; freelancer dan customer lain 403; pembayaran non-sukses 404.
 4. Daftar pembayaran customer `/dashboard/payments`.
 5. Feature test akses, isi struk, dan respons PDF.
+
+---
+
+## Hari 10 — Struk Pembayaran (Cetak dan PDF)
+
+**Tanggal pengerjaan:** 5 November 2026
+**Branch:** `hari-10-struk`, di-merge ke `master`
+**Status:** Selesai
+
+### Fitur yang dikerjakan
+
+- **Paket:** `barryvdh/laravel-dompdf` v3.1.2 (dompdf 3.1.6), kompatibel dengan Laravel 13.
+- **Struk** `/dashboard/receipts/{payment}`:
+  - Halaman mandiri siap cetak: tombol **Cetak Struk** (`window.print()`), **Unduh PDF**, dan Kembali. Toolbar disembunyikan saat dicetak, dengan `@page A5`.
+  - Isi struk: identitas CreativeHub, cap "LUNAS (SIMULASI)", nomor transaksi, nomor pesanan, tanggal bayar (WIB), metode, referensi, status, customer, freelancer, layanan/paket (snapshot), hari dan revisi, harga, biaya layanan, total, **pembagian komisi dan bagian freelancer** (ditandai pencatatan simulasi, bukan payout), keterangan simulasi, dan waktu cetak.
+  - Template `receipts/_document` + `_styles` dipakai bersama oleh HTML dan PDF, dengan CSS sederhana yang aman untuk DomPDF.
+- **PDF** `/dashboard/receipts/{payment}/pdf`: A5, font subsetting aktif, nama file `struk-{kode}.pdf`.
+- **Otorisasi:** customer pemilik dan admin (`PaymentPolicy::view`); freelancer dan customer lain 403; pembayaran yang belum berhasil memberi 404. Semua nilai dari database, parameter URL diabaikan.
+- **Riwayat Pembayaran** `/dashboard/payments`: tabel transaksi milik sendiri dengan tautan struk. Menu ada di dropdown akun.
+- **Tautan struk** di halaman detail pembayaran (berhasil) dan daftar transaksi di halaman pesanan.
+
+### Hasil testing
+
+`php artisan test`: **207 passed (930 assertions)**. Isinya 198 test sebelumnya ditambah 9 test di `ReceiptTest`:
+
+- isi struk lengkap dari database (Rp1.250.000, komisi Rp125.000, bagian freelancer Rp1.125.000, metode, tanggal, pihak);
+- parameter URL tidak mengubah nilai;
+- PDF diunduh (`application/pdf`, diawali `%PDF`, nama file benar);
+- admin bisa melihat dan mengunduh;
+- freelancer dan customer lain 403;
+- guest diarahkan ke login;
+- pembayaran pending tidak punya struk (404);
+- riwayat hanya berisi transaksi sendiri;
+- halaman pembayaran berhasil menautkan struk dan PDF.
+
+**Pemeriksaan visual PDF:** contoh struk dirender di dalam transaksi DB yang di-*rollback* (tidak ada data tersisa; dev tetap 3 user dan 0 order). Hasilnya rapi: paket Standard "Website Company Profile Lengkap" Rp3.000.000, komisi 10% Rp300.000, bagian freelancer Rp2.700.000.
+
+### Rencana Hari 11 — Pengiriman hasil dan revisi
+
+1. Tabel `order_deliveries` (pesan dan file privat) serta `order_revisions` (permintaan revisi dan alasan).
+2. Freelancer yang ditugaskan mengirim hasil saat status `in_progress` atau `revision_requested`, yang mengubah status menjadi `delivered`. File disimpan di disk **privat** dan diunduh lewat controller yang memeriksa akses.
+3. Customer pemilik meminta revisi (jika jatah revisi masih ada, menjadi `revision_requested`) atau menyelesaikan pesanan (menjadi `completed`). Proyek proposal ikut menjadi `completed`.
+4. Validasi upload (tipe, ukuran, nama), riwayat status, dan feature test akses semua pihak.

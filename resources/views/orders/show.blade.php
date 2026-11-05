@@ -90,7 +90,12 @@
                                 @foreach ($order->payments as $payment)
                                     <li class="flex items-center justify-between gap-2">
                                         <a href="{{ route('payments.show', $payment) }}" class="font-mono text-xs text-violet-700 hover:underline">{{ $payment->transaction_code }}</a>
-                                        <x-status-badge :status="$payment->status" />
+                                        <span class="flex items-center gap-2">
+                                            @if ($payment->status === \App\Enums\PaymentStatus::Success)
+                                                <a href="{{ route('receipts.show', $payment) }}" class="text-xs font-semibold text-violet-600 hover:underline">{{ __('Struk') }}</a>
+                                            @endif
+                                            <x-status-badge :status="$payment->status" />
+                                        </span>
                                     </li>
                                 @endforeach
                             </ul>

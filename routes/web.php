@@ -14,6 +14,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\ProposalController;
 use App\Http\Controllers\ProposalDecisionController;
+use App\Http\Controllers\ReceiptController;
 use App\Http\Controllers\ServiceController;
 use Illuminate\Support\Facades\Route;
 
@@ -36,6 +37,9 @@ Route::middleware('auth')->group(function () {
     Route::post('/checkout/{order}/payments', [PaymentController::class, 'start'])->whereNumber('order')->name('payments.start');
     Route::get('/payments/{payment}', [PaymentController::class, 'show'])->name('payments.show');
     Route::post('/payments/{payment}/simulate', [PaymentController::class, 'simulate'])->middleware('throttle:30,1')->name('payments.simulate');
+    Route::get('/dashboard/payments', [ReceiptController::class, 'index'])->name('payments.index');
+    Route::get('/dashboard/receipts/{payment}', [ReceiptController::class, 'show'])->name('receipts.show');
+    Route::get('/dashboard/receipts/{payment}/pdf', [ReceiptController::class, 'pdf'])->name('receipts.pdf');
     Route::get('/dashboard/orders', [OrderController::class, 'index'])->name('orders.index');
     Route::get('/dashboard/orders/{order}', [OrderController::class, 'show'])->name('orders.show');
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');

@@ -44,6 +44,13 @@
                 </dl>
             </section>
 
+            @if ($payment->status === \App\Enums\PaymentStatus::Success)
+                <div class="mx-4 flex flex-wrap gap-3 sm:mx-0">
+                    <a href="{{ route('receipts.show', $payment) }}" class="rounded-md bg-violet-600 px-4 py-2 text-sm font-semibold text-white hover:bg-violet-500">{{ __('Lihat / Cetak Struk') }}</a>
+                    <a href="{{ route('receipts.pdf', $payment) }}" class="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50">{{ __('Unduh PDF') }}</a>
+                </div>
+            @endif
+
             @if ($payment->status === \App\Enums\PaymentStatus::Pending)
                 <section class="p-4 sm:p-6 bg-white shadow-sm sm:rounded-lg">
                     <h3 class="font-semibold text-gray-900">{{ __('Instruksi pembayaran (dummy)') }}</h3>
