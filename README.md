@@ -67,6 +67,8 @@ php artisan serve --host=127.0.0.1 --port=8000
 
 ## Data dan akun demo
 
+> **Cara tercepat:** pulihkan isi database yang sudah disiapkan dari [`database/backup`](database/backup/README.md). Semua akun memakai password demo `CreativeHub-Demo-2026`.
+
 `DemoSeeder` membuat data yang **ditandai sebagai demo** (email `@demo.creativehub.test`):
 
 | Akun | Peran |
