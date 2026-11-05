@@ -13,9 +13,16 @@
 
     <div class="py-12">
         <div class="max-w-5xl mx-auto sm:px-6 lg:px-8 space-y-6">
-            @if (in_array(session('status'), ['proposal-accepted', 'order-created'], true))
+            @if (session('status'))
                 <p class="mx-4 rounded-md bg-green-50 p-3 text-sm text-green-700 sm:mx-0">
-                    {{ session('status') === 'proposal-accepted' ? __('Penawaran diterima. Pesanan dibuat dan menunggu pembayaran.') : __('Pesanan dibuat dan menunggu pembayaran.') }}
+                    {{ match (session('status')) {
+                        'proposal-accepted' => __('Penawaran diterima. Pesanan dibuat dan menunggu pembayaran.'),
+                        'order-created' => __('Pesanan dibuat dan menunggu pembayaran.'),
+                        'order-delivered' => __('Hasil pekerjaan terkirim ke customer.'),
+                        'revision-requested' => __('Permintaan revisi terkirim ke freelancer.'),
+                        'order-completed' => __('Pesanan selesai. Terima kasih!'),
+                        default => '',
+                    } }}
                 </p>
             @endif
             <x-input-error class="mx-4 sm:mx-0" :messages="$errors->get('order')" />
@@ -30,6 +37,93 @@
                         <p class="mt-3 whitespace-pre-line text-sm text-gray-700">{{ $order->scope_description }}</p>
                         <p class="mt-4 text-xs text-gray-400">{{ __('Snapshot saat pesanan dibuat; tidak berubah jika layanan atau penawaran diedit.') }}</p>
                     </section>
+
+                    @php($timeline = $order->deliveries->map(fn ($d) => ['type' => 'delivery', 'at' => $d->created_at, 'item' => $d])
+                        ->concat($order->revisions->map(fn ($r) => ['type' => 'revision', 'at' => $r->created_at, 'item' => $r]))
+                        ->sortBy([['at', 'asc']])->values())
+
+                    @if ($timeline->isNotEmpty() || Gate::allows('deliver', $order) || Gate::allows('review', $order))
+                        <section class="p-4 sm:p-6 bg-white shadow-sm sm:rounded-lg" id="pengerjaan">
+                            <h3 class="font-semibold text-gray-900">{{ __('Hasil & revisi') }}</h3>
+
+                            @foreach ($timeline as $entry)
+                                @if ($entry['type'] === 'delivery')
+                                    <article class="mt-4 rounded-lg border border-violet-200 bg-violet-50/50 p-4 text-sm">
+                                        <p class="font-semibold text-violet-900">{{ __('Hasil dikirim oleh :name', ['name' => $entry['item']->freelancer->name]) }}</p>
+                                        <p class="text-xs text-gray-500">{{ $entry['at']->translatedFormat('d F Y H:i') }}</p>
+                                        <p class="mt-2 whitespace-pre-line text-gray-700">{{ $entry['item']->message }}</p>
+                                        <div class="mt-3 flex flex-wrap gap-3">
+                                            @if ($entry['item']->hasFile())
+                                                <a href="{{ route('deliveries.download', $entry['item']) }}" class="inline-flex items-center gap-1 rounded-md bg-white px-3 py-1.5 font-semibold text-violet-700 ring-1 ring-violet-200 hover:bg-violet-100">
+                                                    {{ __('Unduh :name', ['name' => $entry['item']->file_name]) }}
+                                                    <span class="text-xs font-normal text-gray-500">({{ number_format($entry['item']->file_size / 1024, 0, ',', '.') }} KB)</span>
+                                                </a>
+                                            @endif
+                                            @if ($entry['item']->link_url)
+                                                <a href="{{ $entry['item']->link_url }}" target="_blank" rel="noopener noreferrer nofollow" class="inline-flex items-center rounded-md bg-white px-3 py-1.5 font-semibold text-violet-700 ring-1 ring-violet-200 hover:bg-violet-100">{{ __('Buka tautan hasil') }} &nearr;</a>
+                                            @endif
+                                        </div>
+                                    </article>
+                                @else
+                                    <article class="mt-4 rounded-lg border border-amber-200 bg-amber-50/60 p-4 text-sm">
+                                        <p class="font-semibold text-amber-900">{{ __('Revisi diminta oleh :name', ['name' => $entry['item']->requester->name]) }}</p>
+                                        <p class="text-xs text-gray-500">{{ $entry['at']->translatedFormat('d F Y H:i') }}</p>
+                                        <p class="mt-2 whitespace-pre-line text-gray-700">{{ $entry['item']->reason }}</p>
+                                    </article>
+                                @endif
+                            @endforeach
+
+                            @can('deliver', $order)
+                                <form method="post" action="{{ route('orders.deliver', $order) }}" enctype="multipart/form-data" class="mt-6 space-y-4 border-t border-gray-100 pt-6">
+                                    @csrf
+                                    <h4 class="font-semibold text-gray-900">{{ $order->status === \App\Enums\OrderStatus::RevisionRequested ? __('Kirim hasil revisi') : __('Kirim hasil pekerjaan') }}</h4>
+                                    <div>
+                                        <x-input-label for="message" :value="__('Catatan untuk customer')" />
+                                        <textarea id="message" name="message" rows="4" required minlength="10" maxlength="3000" class="mt-1 block w-full rounded-md border-gray-300 shadow-xs focus:border-indigo-500 focus:ring-indigo-500">{{ old('message') }}</textarea>
+                                        <x-input-error class="mt-1" :messages="$errors->get('message')" />
+                                    </div>
+                                    <div>
+                                        <x-input-label for="file" :value="__('File hasil')" />
+                                        <input id="file" name="file" type="file" accept=".{{ implode(',.', config('creativehub.delivery_extensions')) }}"
+                                            class="mt-1 block w-full text-sm text-gray-700 file:mr-4 file:rounded-md file:border-0 file:bg-gray-800 file:px-4 file:py-2 file:text-xs file:font-semibold file:uppercase file:tracking-widest file:text-white hover:file:bg-gray-700">
+                                        <p class="mt-1 text-xs text-gray-500">
+                                            {{ __('Format: :ext. Maksimal :size MB. File besar? Gunakan tautan di bawah.', ['ext' => implode(', ', config('creativehub.delivery_extensions')), 'size' => rtrim(rtrim(number_format(config('creativehub.delivery_max_kb') / 1024, 1, ',', '.'), '0'), ',')]) }}
+                                        </p>
+                                        <x-input-error class="mt-1" :messages="$errors->get('file')" />
+                                    </div>
+                                    <div>
+                                        <x-input-label for="link_url" :value="__('Tautan hasil (opsional jika ada file)')" />
+                                        <x-text-input id="link_url" name="link_url" type="url" class="mt-1 block w-full" maxlength="500" :value="old('link_url')" placeholder="https://drive.google.com/..." />
+                                        <x-input-error class="mt-1" :messages="$errors->get('link_url')" />
+                                    </div>
+                                    <x-primary-button>{{ __('Kirim Hasil') }}</x-primary-button>
+                                </form>
+                            @endcan
+
+                            @can('review', $order)
+                                <div class="mt-6 space-y-4 border-t border-gray-100 pt-6">
+                                    <h4 class="font-semibold text-gray-900">{{ __('Tinjau hasil') }}</h4>
+                                    <form method="post" action="{{ route('orders.complete', $order) }}"
+                                          onsubmit="return confirm(@js(__('Selesaikan pesanan? Setelah selesai, revisi tidak dapat diminta lagi.')))">
+                                        @csrf
+                                        <button type="submit" class="rounded-md bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-500">{{ __('Terima Hasil & Selesaikan') }}</button>
+                                    </form>
+
+                                    @if ($order->revisionsRemaining() > 0)
+                                        <form method="post" action="{{ route('orders.revisions.store', $order) }}" class="space-y-2">
+                                            @csrf
+                                            <x-input-label for="reason" :value="__('Minta revisi (sisa :n kali)', ['n' => $order->revisionsRemaining()])" />
+                                            <textarea id="reason" name="reason" rows="3" required minlength="10" maxlength="2000" class="block w-full rounded-md border-gray-300 shadow-xs focus:border-indigo-500 focus:ring-indigo-500" placeholder="{{ __('Jelaskan bagian yang perlu diperbaiki.') }}">{{ old('reason') }}</textarea>
+                                            <x-input-error :messages="$errors->get('reason')" />
+                                            <button type="submit" class="rounded-md border border-amber-400 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-900 hover:bg-amber-100">{{ __('Minta Revisi') }}</button>
+                                        </form>
+                                    @else
+                                        <p class="text-sm text-gray-500">{{ __('Jatah revisi sudah habis.') }}</p>
+                                    @endif
+                                </div>
+                            @endcan
+                        </section>
+                    @endif
 
                     <section class="p-4 sm:p-6 bg-white shadow-sm sm:rounded-lg">
                         <h3 class="font-semibold text-gray-900">{{ __('Riwayat status') }}</h3>

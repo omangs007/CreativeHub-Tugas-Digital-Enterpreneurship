@@ -26,6 +26,20 @@ class OrderPolicy
         return $order->customer_id === $user->id && $order->status === OrderStatus::PendingPayment;
     }
 
+    public function deliver(User $user, Order $order): bool
+    {
+        return $order->freelancer_id === $user->id
+            && in_array($order->status, [OrderStatus::InProgress, OrderStatus::RevisionRequested], true);
+    }
+
+    /**
+     * Customer pemilik meninjau hasil: minta revisi atau selesaikan.
+     */
+    public function review(User $user, Order $order): bool
+    {
+        return $order->customer_id === $user->id && $order->status === OrderStatus::Delivered;
+    }
+
     public function create(User $user): bool
     {
         return false;

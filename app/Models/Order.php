@@ -88,6 +88,21 @@ class Order extends Model
         return $this->hasOne(Payment::class)->where('status', PaymentStatus::Success);
     }
 
+    public function deliveries(): HasMany
+    {
+        return $this->hasMany(OrderDelivery::class);
+    }
+
+    public function revisions(): HasMany
+    {
+        return $this->hasMany(OrderRevision::class);
+    }
+
+    public function revisionsRemaining(): int
+    {
+        return max(0, $this->revisions_allowed - $this->revisions_used);
+    }
+
     public function statusHistories(): HasMany
     {
         return $this->hasMany(OrderStatusHistory::class)->orderBy('created_at')->orderBy('id');

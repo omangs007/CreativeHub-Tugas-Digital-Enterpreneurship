@@ -926,3 +926,56 @@ Pemeriksaan lain:
 2. Freelancer yang ditugaskan mengirim hasil saat status `in_progress` atau `revision_requested`, yang mengubah status menjadi `delivered`. File disimpan di disk **privat** dan diunduh lewat controller yang memeriksa akses.
 3. Customer pemilik meminta revisi (jika jatah revisi masih ada, menjadi `revision_requested`) atau menyelesaikan pesanan (menjadi `completed`). Proyek proposal ikut menjadi `completed`.
 4. Validasi upload (tipe, ukuran, nama), riwayat status, dan feature test akses semua pihak.
+
+---
+
+## Hari 11 — Pengiriman Hasil dan Revisi
+
+**Tanggal pengerjaan:** 5 November 2026
+**Branch:** `hari-11-pengiriman-revisi`, di-merge ke `master`
+**Status:** Selesai
+
+### Fitur yang dikerjakan
+
+- **Tabel `order_deliveries`:** order, freelancer, catatan, tautan opsional, metadata file (path privat, nama aman, mime, ukuran). CHECK: wajib ada file **atau** tautan.
+- **Tabel `order_revisions`:** order, delivery terkait, peminta, alasan.
+- **`OrderWorkflow`** (transaksi + `lockForUpdate` order, memeriksa ulang pihak dan status):
+  - `deliver()`: hanya freelancer yang ditugaskan, saat `in_progress`/`revision_requested`; status menjadi `delivered`. Jika transaksi gagal, file yang sudah diunggah dihapus kembali.
+  - `requestRevision()`: hanya customer, saat `delivered`, jika jatah masih ada; `revisions_used` naik dan status menjadi `revision_requested`.
+  - `complete()`: hanya customer, saat `delivered`; status menjadi `completed`. Proyek asal proposal ikut `completed`.
+  - Semua perubahan tercatat di riwayat status.
+- **File hasil:**
+  - Disimpan di **disk privat `local`** (`storage/app/private/deliveries/{order}/`) dengan nama acak 40 karakter. Nama unduhan disanitasi, contoh `Hasil Map <final>.zip` menjadi `hasil-map-final.zip`.
+  - Unduhan lewat `/dashboard/deliveries/{id}/download` hanya untuk customer, freelancer terkait, atau admin.
+  - Ekstensi diizinkan: zip, rar, 7z, pdf, png, jpg, jpeg, webp, rbxl, rbxm (file Roblox).
+- **Batas ukuran:** `CREATIVEHUB_DELIVERY_MAX_KB` (default 2048 KB = `upload_max_filesize` PHP saat ini). `php.ini` **tidak diubah**. Untuk file lebih besar, freelancer bisa mengirim **tautan** (misalnya Google Drive), atau batas PHP dinaikkan oleh pengguna.
+- **Halaman pesanan:**
+  - Bagian "Hasil & revisi" menampilkan timeline pengiriman dan revisi.
+  - Freelancer mendapat form kirim hasil (catatan, file, tautan).
+  - Customer mendapat tombol **Terima Hasil & Selesaikan** dan form **Minta Revisi** dengan sisa jatah.
+  - Pesan status untuk setiap aksi.
+
+### Hasil testing
+
+`php artisan test`: **217 passed (988 assertions)**. Isinya 207 test sebelumnya ditambah 10 test di `OrderWorkflowTest`:
+
+- kirim hasil dengan file privat dan nama tersanitasi;
+- kirim hanya tautan;
+- validasi (tanpa file/tautan, `.exe`, `.php`, lebih dari 2 MB, `javascript:`);
+- hanya freelancer yang ditugaskan dan hanya saat dikerjakan (customer, freelancer lain, dan order belum dibayar 403);
+- revisi sesuai jatah lalu kirim ulang, setelah jatah habis ditolak;
+- selesaikan pesanan dan proyek ikut selesai;
+- hanya customer yang meninjau dan hanya setelah hasil dikirim;
+- pesanan selesai tidak menerima aksi lagi;
+- unduhan file dibatasi pada pihak terkait dan admin;
+- form tampil sesuai peran.
+
+Pemeriksaan lain: Pint dan build OK; `migrate` dev (DB `creativehub`) menjalankan 1 migration.
+
+### Rencana Hari 12 — Dashboard customer dan freelancer
+
+1. `/dashboard` berbasis peran:
+   - customer: ringkasan pesanan per status, proyek terbuka, pembayaran terbaru, aksi cepat;
+   - freelancer: pesanan aktif dan yang perlu dikirim, penawaran menunggu, layanan per status, **ringkasan pendapatan** (dari pesanan selesai/dibayar, bagian freelancer).
+2. Halaman `/dashboard/earnings` untuk freelancer: daftar pesanan berbayar dengan nilai, komisi, dan bagian freelancer (pencatatan simulasi).
+3. Data hanya milik user login. Feature test isolasi data.

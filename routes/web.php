@@ -8,6 +8,7 @@ use App\Http\Controllers\FreelancerProfileController;
 use App\Http\Controllers\FreelancerServiceController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\OrderController;
+use App\Http\Controllers\OrderWorkflowController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\PortfolioController;
 use App\Http\Controllers\ProfileController;
@@ -42,6 +43,10 @@ Route::middleware('auth')->group(function () {
     Route::get('/dashboard/receipts/{payment}/pdf', [ReceiptController::class, 'pdf'])->name('receipts.pdf');
     Route::get('/dashboard/orders', [OrderController::class, 'index'])->name('orders.index');
     Route::get('/dashboard/orders/{order}', [OrderController::class, 'show'])->name('orders.show');
+    Route::post('/dashboard/orders/{order}/deliveries', [OrderWorkflowController::class, 'deliver'])->name('orders.deliver');
+    Route::post('/dashboard/orders/{order}/revisions', [OrderWorkflowController::class, 'requestRevision'])->name('orders.revisions.store');
+    Route::post('/dashboard/orders/{order}/complete', [OrderWorkflowController::class, 'complete'])->name('orders.complete');
+    Route::get('/dashboard/deliveries/{delivery}/download', [OrderWorkflowController::class, 'download'])->name('deliveries.download');
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');

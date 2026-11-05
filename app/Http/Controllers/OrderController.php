@@ -36,7 +36,7 @@ class OrderController extends Controller
         Gate::authorize('view', $order);
 
         return view('orders.show', [
-            'order' => $order->load(['customer', 'freelancer', 'statusHistories.changedBy', 'service', 'project', 'payments' => fn ($q) => $q->latest()]),
+            'order' => $order->load(['customer', 'freelancer', 'statusHistories.changedBy', 'service', 'project', 'payments' => fn ($q) => $q->latest(), 'deliveries.freelancer', 'revisions.requester']),
         ]);
     }
 }
