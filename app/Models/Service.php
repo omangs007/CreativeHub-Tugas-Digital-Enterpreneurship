@@ -92,7 +92,8 @@ class Service extends Model
     {
         $query->where('status', ServiceStatus::Published)
             ->whereHas('category', fn (Builder $q) => $q->where('is_active', true))
-            ->whereHas('activePackages');
+            ->whereHas('activePackages')
+            ->whereHas('freelancer', fn (Builder $q) => $q->where('is_active', true));
     }
 
     /**

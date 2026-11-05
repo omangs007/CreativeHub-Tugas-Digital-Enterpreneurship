@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Models\Setting;
 use InvalidArgumentException;
 
 /**
@@ -11,9 +12,12 @@ use InvalidArgumentException;
  */
 final class CommissionCalculator
 {
+    /**
+     * Komisi yang berlaku untuk order baru: pengaturan admin, atau nilai default dari config.
+     */
     public static function currentRateBps(): int
     {
-        return (int) config('creativehub.commission_rate_bps');
+        return (int) Setting::get(Setting::COMMISSION_RATE_BPS, config('creativehub.commission_rate_bps'));
     }
 
     /**

@@ -45,7 +45,7 @@ class FreelancerProfileController extends Controller
 
         $user->load([
             'freelancerProfile',
-            'portfolioItems' => fn ($q) => $q->with('category')->latest(),
+            'portfolioItems' => fn ($q) => $q->where('is_visible', true)->with('category')->latest(),
         ]);
 
         $services = $user->services()

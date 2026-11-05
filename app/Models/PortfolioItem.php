@@ -25,6 +25,25 @@ class PortfolioItem extends Model
     /** Disk penyimpanan gambar portofolio (publik, karena ditampilkan di profil). */
     public const DISK = 'public';
 
+    /**
+     * @var array<string, mixed>
+     */
+    protected $attributes = [
+        'is_visible' => true,
+    ];
+
+    /**
+     * Get the attributes that should be cast.
+     *
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'is_visible' => 'boolean',
+        ];
+    }
+
     public function freelancer(): BelongsTo
     {
         return $this->belongsTo(User::class, 'user_id');

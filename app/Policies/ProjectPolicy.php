@@ -55,6 +55,14 @@ class ProjectPolicy
         return $project->customer_id === $user->id;
     }
 
+    /**
+     * Admin dapat menutup proyek terbuka yang melanggar aturan (moderasi).
+     */
+    public function moderate(User $user, Project $project): bool
+    {
+        return $user->isAdmin() && $project->isOpen();
+    }
+
     public function delete(User $user, Project $project): bool
     {
         return false;

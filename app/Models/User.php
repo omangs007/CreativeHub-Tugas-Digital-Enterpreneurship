@@ -25,6 +25,13 @@ class User extends Authenticatable implements FilamentUser
     use HasFactory, Notifiable;
 
     /**
+     * @var array<string, mixed>
+     */
+    protected $attributes = [
+        'is_active' => true,
+    ];
+
+    /**
      * Get the attributes that should be cast.
      *
      * @return array<string, string>
@@ -34,6 +41,7 @@ class User extends Authenticatable implements FilamentUser
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'is_active' => 'boolean',
         ];
     }
 
@@ -90,7 +98,8 @@ class User extends Authenticatable implements FilamentUser
     public function scopePublicFreelancers(Builder $query): void
     {
         $query->whereHas('roles', fn (Builder $q) => $q->where('name', RoleName::Freelancer->value))
-            ->whereHas('freelancerProfile');
+            ->whereHas('freelancerProfile')
+            ->where('is_active', true);
     }
 
     public function hasRole(RoleName $role): bool
@@ -116,6 +125,6 @@ class User extends Authenticatable implements FilamentUser
 
     public function canAccessPanel(Panel $panel): bool
     {
-        return $panel->getId() === 'admin' && $this->isAdmin();
+        return $panel->getId() === 'admin' && $this->is_active && $this->isAdmin();
     }
 }

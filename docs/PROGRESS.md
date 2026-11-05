@@ -1081,3 +1081,65 @@ Pemeriksaan lain:
 3. Filament **Ulasan**: tampilkan/sembunyikan dengan audit log. **Proyek** dan **Portofolio**: moderasi sederhana (tutup proyek, sembunyikan portofolio).
 4. **Pengaturan komisi** (tabel `settings`): persentase komisi diubah admin dengan audit log; berlaku untuk order baru saja.
 5. Feature test otorisasi dan audit untuk setiap aksi admin.
+
+---
+
+## Hari 14 — Panel Admin: Pengguna, Pesanan, Pembayaran, Moderasi, Komisi
+
+**Tanggal pengerjaan:** 5 November 2026
+**Branch:** `hari-14-admin-panel`, di-merge ke `master`
+**Status:** Selesai
+
+### Fitur yang dikerjakan
+
+- **Migration:** `users.is_active` (default true), `portfolio_items.is_visible` (default true), tabel `settings` (key-value).
+- **Akun nonaktif:**
+  - Login ditolak dengan pesan "Akun Anda dinonaktifkan…".
+  - Sesi yang masih berjalan dikeluarkan oleh middleware `EnsureUserIsActive` (grup web).
+  - Tidak bisa masuk panel admin (`canAccessPanel`).
+  - Layanan, proyek, dan profil publik milik akun nonaktif disembunyikan (scope `publiclyVisible` / `publicFreelancers`).
+- **Filament** (semua lewat policy, semua aksi diaudit):
+  - **Pengguna**: daftar dengan badge peran, filter peran/status, aksi Aktifkan/Nonaktifkan dengan konfirmasi (`UserPolicy::toggleActive`, tidak bisa untuk diri sendiri). Tidak ada edit atau hapus.
+  - **Pesanan**: daftar dan filter status, halaman detail berisi snapshot, nominal ("tidak dapat diubah"), riwayat status, dan pembayaran. **Hanya baca**; tidak ada rute edit.
+  - **Pembayaran**: daftar dengan filter status/metode dan tautan Struk untuk transaksi berhasil. Hanya baca.
+  - **Ulasan**: Tampilkan/Sembunyikan (`ReviewPolicy::moderate`). Isi dan rating tidak bisa diubah admin.
+  - **Proyek**: daftar dengan jumlah penawaran, aksi Tutup untuk proyek terbuka (`ProjectPolicy::moderate`).
+  - **Portofolio**: thumbnail, Tampilkan/Sembunyikan (`PortfolioItemPolicy::moderate`). Portofolio tersembunyi tidak tampil di profil publik.
+  - **Pengaturan Komisi** (grup Sistem): menampilkan komisi berlaku dan contoh perhitungan; aksi **Ubah Komisi** (0–50%, dua desimal).
+    - Disimpan dalam basis poin di `settings` dan dicatat audit `setting.commission_updated` (nilai lama/baru).
+    - `CommissionCalculator` membaca pengaturan admin, dengan fallback ke config. **Hanya berlaku untuk order baru**; order lama memakai snapshot.
+- Grup navigasi: Katalog (Layanan, Kategori, Proyek, Ulasan, Portofolio), Transaksi (Pesanan, Pembayaran), Pengguna, Sistem (Audit Log, Pengaturan Komisi).
+
+### Hasil testing
+
+`php artisan test`: **247 passed (1163 assertions)**. Isinya 237 test sebelumnya ditambah 10 test di `AdminManagementTest`:
+
+- 7 halaman admin bisa dibuka admin dan 403 untuk freelancer;
+- nonaktifkan user: audit, layanan dan profil 404, login ditolak, sesi aktif dikeluarkan;
+- admin tidak bisa menonaktifkan diri sendiri;
+- admin nonaktif tidak bisa akses panel;
+- pesanan dan pembayaran hanya baca (tanpa edit/hapus, rute edit 404);
+- sembunyikan ulasan dengan audit;
+- tutup proyek dengan audit (aksi tersembunyi untuk proyek tertutup);
+- sembunyikan portofolio dengan audit;
+- **komisi 10% menjadi 12,5% hanya berlaku untuk order baru** (order lama tetap Rp10.000, order baru komisi Rp12.500 dan freelancer Rp87.500) dan diaudit;
+- komisi lebih dari 50% ditolak.
+
+Pemeriksaan lain: Pint dan build OK; `migrate` dev (DB `creativehub`) menjalankan 1 migration.
+
+### Error dan solusinya
+
+| Masalah | Solusi |
+|---|---|
+| Model user baru di memori belum punya `is_active`, sehingga middleware bisa salah mengeluarkan user | Default `$attributes = ['is_active' => true]` pada `User` |
+| Escaping `$dir` di loop Bash merusak namespace kelas halaman Filament | Halaman dibuat ulang dengan script PHP kecil di scratchpad |
+
+### Rencana Hari 15 — Laporan keuangan admin dan PDF
+
+1. Halaman Filament **Laporan Keuangan** (`/admin/financial-reports`):
+   - filter tanggal mulai dan akhir serta preset (hari ini, kemarin, 7 hari terakhir, bulan ini, bulan tertentu), berdasarkan tanggal pembayaran (zona Asia/Jakarta);
+   - ringkasan omzet terealisasi (Σ pembayaran berhasil), komisi, pendapatan freelancer, jumlah transaksi berhasil, pending, gagal, dan dibatalkan;
+   - tabel transaksi sesuai filter.
+2. **Cetak** (halaman print-friendly) dan **unduh PDF** dengan filter yang sama: periode, tanggal cetak, ringkasan, tabel, total.
+3. Satu service `FinancialReport` sebagai sumber angka untuk halaman, cetak, dan PDF.
+4. Feature test: hanya admin; batas tanggal benar (inklusif dan zona waktu); pending/gagal tidak dihitung sebagai omzet; angka halaman = PDF = database.

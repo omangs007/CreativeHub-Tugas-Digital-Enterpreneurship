@@ -75,7 +75,8 @@ class Project extends Model
     public function scopePubliclyVisible(Builder $query): void
     {
         $query->where('status', ProjectStatus::Open)
-            ->whereHas('category', fn (Builder $q) => $q->where('is_active', true));
+            ->whereHas('category', fn (Builder $q) => $q->where('is_active', true))
+            ->whereHas('customer', fn (Builder $q) => $q->where('is_active', true));
     }
 
     public function isOpen(): bool
