@@ -2,7 +2,7 @@
     <x-slot name="header">
         <div class="flex flex-wrap items-center justify-between gap-3">
             <div class="flex items-center gap-3">
-                <x-avatar :name="$other->name" class="size-10" />
+                <x-avatar :user="$other" class="size-10" />
                 <div>
                     <h2 class="font-semibold text-lg text-gray-800 leading-tight">{{ $other->name }}</h2>
                     <p class="text-xs text-gray-500">

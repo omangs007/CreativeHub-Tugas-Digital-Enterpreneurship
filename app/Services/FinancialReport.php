@@ -166,6 +166,27 @@ final class FinancialReport
     }
 
     /**
+     * Omzet terealisasi per hari (tanggal => Rupiah), termasuk hari tanpa transaksi.
+     *
+     * @return array<string, int>
+     */
+    public function dailyRevenue(): array
+    {
+        $sums = $this->inPeriod()
+            ->where('status', PaymentStatus::Success)
+            ->selectRaw('date(paid_at) as day, sum(amount) as total')
+            ->groupBy('day')
+            ->pluck('total', 'day');
+
+        $days = [];
+        for ($day = $this->start; $day->lte($this->end); $day = $day->addDay()) {
+            $days[$day->toDateString()] = (int) ($sums[$day->toDateString()] ?? 0);
+        }
+
+        return $days;
+    }
+
+    /**
      * @return Collection<int, Payment>
      */
     public function transactions(): Collection

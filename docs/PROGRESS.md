@@ -1352,3 +1352,34 @@ Pemeriksaan lain: Pint dan build OK; `curl -I` ke server dev menampilkan ketiga 
 - badge pesan chat belum dibaca.
 
 Pemeriksaan lain: Pint dan build OK; `migrate` dev (DB `creativehub`) menjalankan tabel `notifications`.
+
+---
+
+## Hari 19 — Foto Profil dan Grafik Omzet Admin
+
+**Tanggal pengerjaan:** 5 November 2026
+**Branch:** `hari-19-avatar-grafik`, di-merge ke `master`
+**Status:** Selesai
+
+### Fitur yang dikerjakan
+
+- **Foto profil:**
+  - Kolom `users.avatar_path` (tidak fillable).
+  - Unggah, ganti, dan hapus di halaman Profil (`AvatarController`): JPG/PNG/WebP ≤ 1 MB, 100–3000 px, SVG ditolak, nama file acak di `avatars/{user}/`, foto lama dihapus saat diganti.
+  - `<x-avatar :user>` menampilkan foto atau inisial di profil freelancer, freelancer unggulan, detail layanan, ulasan, penawaran, dan chat.
+- **Dasbor admin:**
+  - Kartu **Omzet bulan ini** (+ jumlah transaksi berhasil dan komisi, tautan ke laporan).
+  - **Grafik garis omzet 30 hari terakhir** (`RevenueChart`).
+  - Keduanya memakai `FinancialReport` (metode baru `dailyRevenue()`), sehingga angkanya sama dengan laporan keuangan.
+
+### Hasil testing
+
+`php artisan test`: **277 passed (1378 assertions)**. Isinya 272 test sebelumnya ditambah 5 test di `AvatarAndChartTest`:
+
+- unggah, ganti (file lama terhapus), tampil di profil publik, dan hapus;
+- validasi (SVG, terlalu kecil, lebih dari 1 MB, PDF);
+- `avatar_path` tidak bisa disuntik lewat update profil;
+- foto tampil di detail layanan;
+- omzet harian (hari kosong = 0, transaksi gagal tidak dihitung), widget grafik, dan kartu omzet di dasbor.
+
+**Browser:** dasbor admin (akun sementara, dihapus setelahnya) menampilkan Omzet bulan ini Rp1.275.000 dan grafik 30 hari sesuai data demo.

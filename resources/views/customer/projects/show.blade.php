@@ -79,7 +79,7 @@
                     <article class="mt-4 rounded-lg border border-gray-200 p-4">
                         <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                             <div class="flex items-center gap-3">
-                                <x-avatar :name="$proposal->freelancer->name" class="size-10" />
+                                <x-avatar :user="$proposal->freelancer" class="size-10" />
                                 <div>
                                     <a href="{{ route('freelancers.show', $proposal->freelancer_id) }}" target="_blank" class="font-semibold text-gray-900 hover:text-violet-700">{{ $proposal->freelancer->name }}</a>
                                     <p class="text-xs text-gray-500">{{ $proposal->freelancer->freelancerProfile?->headline ?? __('Freelancer CreativeHub') }}</p>

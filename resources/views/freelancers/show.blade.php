@@ -2,7 +2,7 @@
     <section class="relative overflow-hidden bg-ink-950 text-white">
         <div class="pointer-events-none absolute -right-24 -top-24 size-96 rounded-full bg-violet-600/25 blur-3xl"></div>
         <div class="relative mx-auto flex max-w-7xl flex-col gap-6 px-4 py-12 sm:flex-row sm:items-center sm:px-6 lg:px-8">
-            <x-avatar :name="$freelancer->name" class="size-24 bg-gradient-to-br from-violet-500 to-electric-500 text-4xl ring-4 ring-white/10" />
+            <x-avatar :user="$freelancer" class="size-24 bg-gradient-to-br from-violet-500 to-electric-500 text-4xl ring-4 ring-white/10" />
 
             <div class="flex-1">
                 <h1 class="text-3xl font-extrabold tracking-tight sm:text-4xl">{{ $freelancer->name }}</h1>

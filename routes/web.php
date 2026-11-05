@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\FinancialReportController;
+use App\Http\Controllers\AvatarController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\ConversationController;
@@ -68,6 +69,8 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
     Route::post('/profile/freelancer', [FreelancerActivationController::class, 'store'])->name('profile.freelancer.store');
+    Route::post('/profile/avatar', [AvatarController::class, 'update'])->name('profile.avatar.update');
+    Route::delete('/profile/avatar', [AvatarController::class, 'destroy'])->name('profile.avatar.destroy');
 });
 
 Route::middleware(['auth', 'role:customer'])->prefix('dashboard')->group(function () {

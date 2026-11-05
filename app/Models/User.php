@@ -16,6 +16,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Storage;
 
 #[Fillable(['name', 'email', 'password'])]
 #[Hidden(['password', 'remember_token'])]
@@ -100,6 +101,11 @@ class User extends Authenticatable implements FilamentUser
         $query->whereHas('roles', fn (Builder $q) => $q->where('name', RoleName::Freelancer->value))
             ->whereHas('freelancerProfile')
             ->where('is_active', true);
+    }
+
+    public function avatarUrl(): ?string
+    {
+        return $this->avatar_path ? Storage::disk('public')->url($this->avatar_path) : null;
     }
 
     public function hasRole(RoleName $role): bool

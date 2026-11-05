@@ -13,7 +13,7 @@
                 @php($profile = $service->freelancer->freelancerProfile)
                 @php($hasPublicProfile = $profile && $service->freelancer->hasRole(\App\Enums\RoleName::Freelancer))
                 <div class="mt-5 flex items-center gap-3">
-                    <x-avatar :name="$service->freelancer->name" class="size-11" />
+                    <x-avatar :user="$service->freelancer" class="size-11" />
                     <div>
                         @if ($hasPublicProfile)
                             <a href="{{ route('freelancers.show', $service->user_id) }}" class="font-semibold hover:text-violet-700">{{ $service->freelancer->name }}</a>
@@ -64,7 +64,7 @@
                         <article class="mt-4 rounded-2xl bg-white p-5 ring-1 ring-ink-100">
                             <div class="flex items-center justify-between gap-3">
                                 <div class="flex items-center gap-2">
-                                    <x-avatar :name="$review->customer->name" class="size-8 text-sm" />
+                                    <x-avatar :user="$review->customer" class="size-8 text-sm" />
                                     <span class="font-semibold">{{ $review->customer->name }}</span>
                                 </div>
                                 <x-star-rating :rating="$review->rating" size="text-sm" />

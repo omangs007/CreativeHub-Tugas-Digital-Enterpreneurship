@@ -15,7 +15,7 @@
                         @php($other = $conversation->otherParticipant(auth()->user()))
                         <li>
                             <a href="{{ route('messages.show', $conversation) }}" class="flex items-center gap-4 p-4 hover:bg-gray-50 sm:p-5">
-                                <x-avatar :name="$other->name" class="size-11" />
+                                <x-avatar :user="$other" class="size-11" />
                                 <div class="min-w-0 flex-1">
                                     <div class="flex items-center justify-between gap-2">
                                         <p class="truncate font-semibold text-gray-900">{{ $other->name }}</p>
