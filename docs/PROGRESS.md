@@ -1480,3 +1480,27 @@ php artisan test: 285 passed (1439 assertions). 8 test baru di AdminUserManageme
 - File hasil pekerjaan: `.env` lokal `CREATIVEHUB_DELIVERY_MAX_KB=20480` (20 MB). `.env.example` tetap 2048 agar aman untuk PHP bawaan; cara menaikkannya dijelaskan di README.
 - Halaman error **413 (File terlalu besar)** berbahasa Indonesia untuk upload yang melewati batas PHP.
 - Test: 286 passed (test baru: foto 4000×3000 ±4 MB diterima lalu tersimpan 512×512 WebP; file di atas 5 MB ditolak).
+
+---
+
+## Checkpoint Akhir Hari — 5 November 2026
+
+**Tag:** `checkpoint-2026-11-05-akhir` (juga di GitHub)
+**Repo publik:** https://github.com/omangs007/CreativeHub-Tugas-Digital-Enterpreneurship
+
+### Ringkasan sesi
+
+- Roadmap Hari 1–21 selesai, ditambah: admin mengelola pengguna (tambah, edit, foto, reset password), batas upload lebih besar (php.ini 20M/25M, foto profil 5 MB → 512×512 WebP), perbaikan error 500 saat menyimpan ulang pengguna setelah unggah foto.
+- Kode dipublikasikan ke GitHub (Public) beserta backup database tersamarkan (`database/backup/creativehub.sql`, password demo `CreativeHub-Demo-2026`).
+- Status: **288 test lulus**, Pint dan build OK, working tree bersih.
+
+### Backup lokal (di luar repo)
+
+`C:\Users\admin\creativehub-backups\` berisi dump database asli (tidak disamarkan), `uploads.zip`, dan `CARA-RESTORE.txt` per checkpoint.
+
+### Rencana sesi berikutnya
+
+1. Latihan demo mengikuti `docs/DEMO.md`; catat hal yang perlu dirapikan.
+2. Opsional: naikkan batas gambar portofolio/thumbnail (saat ini 2 MB) dengan pengecilan otomatis seperti foto profil.
+3. Opsional: dokumen laporan tugas (ERD, use case, diagram alur), notifikasi email, atau adapter Midtrans Sandbox.
+4. Tindak lanjut masukan dosen.
