@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\ProposalStatus;
 use App\Models\Category;
 use App\Models\Project;
 use Illuminate\Database\Eloquent\Builder;
@@ -36,10 +37,16 @@ class ProjectController extends Controller
         ]);
     }
 
-    public function show(Project $project): View
+    public function show(Request $request, Project $project): View
     {
         abort_unless(Project::publiclyVisible()->whereKey($project->id)->exists(), 404);
 
-        return view('projects.show', ['project' => $project->load(['category', 'customer'])]);
+        $user = $request->user();
+
+        return view('projects.show', [
+            'project' => $project->load(['category', 'customer']),
+            'proposalCount' => $project->proposals()->where('status', ProposalStatus::Pending)->count(),
+            'myProposal' => $user ? $project->proposals()->where('freelancer_id', $user->id)->latest()->first() : null,
+        ]);
     }
 }

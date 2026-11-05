@@ -675,3 +675,76 @@ Pemeriksaan lain:
 3. Customer melihat proposal di detail proyeknya dan menerima **satu** proposal (transaksi + `lockForUpdate`). Proposal lain otomatis ditolak dan proyek menjadi `in_progress`.
 4. Tabel `orders` (sumber tepat satu: paket **atau** proposal, snapshot judul/harga/scope, status `pending_payment`…), dan `order_status_histories`. Penerimaan proposal membuat order `pending_payment`.
 5. Feature test aturan bisnis: tidak bisa menawar proyek sendiri, satu proposal aktif, hanya proyek open, hanya satu diterima (termasuk percobaan ganda), snapshot order benar.
+
+---
+
+## Hari 7 — Proposal Freelancer, Penerimaan Proposal, dan Fondasi Order
+
+**Tanggal pengerjaan:** 5 November 2026
+**Branch:** `hari-7-proposal-order`, di-merge ke `master`
+**Status:** Selesai
+
+### Fitur yang dikerjakan
+
+- **Tabel `proposals`:**
+  - Harga integer (CHECK > 0), estimasi hari (CHECK > 0), revisi, pesan.
+  - Status `pending|accepted|rejected|withdrawn` dengan CHECK.
+  - Unique index parsial `(project_id, freelancer_id) WHERE status IN (pending, accepted)`: satu proposal aktif per freelancer per proyek.
+  - Unique index parsial `(project_id) WHERE status = accepted`: **maksimal satu proposal diterima per proyek**, dijamin database.
+- **Tabel `orders`:**
+  - Nomor order unik `ORD-yymmdd-XXXXXX`.
+  - FK customer dan freelancer `restrictOnDelete`.
+  - Sumber order: CHECK **tepat satu**, yaitu (layanan + paket) **atau** (proyek + proposal). `proposal_id` unik.
+  - Snapshot: judul, tier/nama paket, scope, hari, revisi.
+  - Nominal integer: subtotal, total, `commission_rate_bps`, komisi, bagian freelancer. CHECK `total = subtotal = komisi + bagian freelancer`, `total > 0`, customer ≠ freelancer, `revisi terpakai ≤ jatah`.
+  - Status 7 tahap dengan CHECK.
+- **Tabel `order_status_histories`:** dari, ke, oleh, catatan, waktu.
+- **Komisi:**
+  - `config/creativehub.php` dengan `CREATIVEHUB_COMMISSION_BPS=1000` (10%, ada di `.env.example`).
+  - `CommissionCalculator::split()`: integer, komisi dibulatkan ke bawah sehingga komisi + bagian freelancer selalu sama dengan total. Persentase di-snapshot ke order.
+- **Transisi status order:**
+  - `OrderStatus::allowedNext()` mendefinisikan alur pending_payment → paid → in_progress → delivered ⇄ revision_requested → completed, serta pending_payment → cancelled.
+  - `Order::transitionTo()` menolak transisi tidak valid dan mencatat riwayat.
+- **Freelancer:**
+  - Kirim penawaran dari halaman proyek publik (`ProjectPolicy::propose`: punya role freelancer, bukan proyek sendiri, proyek open, belum punya penawaran aktif).
+  - Halaman "Penawaran Saya" berisi daftar, edit, dan tarik penawaran selama masih menunggu dan proyek masih open.
+  - Bisa menawar ulang setelah menarik.
+  - Kiriman ganda bersamaan ditahan unique index, lalu dikonversi menjadi pesan validasi.
+- **Customer:**
+  - Detail proyek menampilkan semua penawaran (profil freelancer, harga, hari, revisi, pesan) dengan tombol **Terima**/**Tolak** (`ProposalPolicy::decide`).
+  - `OrderPlacement::acceptProposal()` berjalan dalam **satu transaksi dengan `lockForUpdate` pada proyek dan proposal**, lalu memeriksa ulang kepemilikan dan status:
+    - proposal menjadi accepted;
+    - proposal pending lain menjadi rejected;
+    - proyek menjadi in_progress;
+    - order `pending_payment` dibuat dengan snapshot dan komisi, dan riwayat awal dicatat.
+- **Pesanan** (`/dashboard/orders`, `OrderPolicy::view`: customer, freelancer terkait, atau admin):
+  - Daftar dengan tab "Sebagai customer" dan "Sebagai freelancer".
+  - Detail berisi scope (snapshot), riwayat status, dan rincian. Freelancer melihat nilai, komisi, dan bagiannya; customer melihat total. Ada info menunggu pembayaran.
+- **Keamanan akun:** user yang punya riwayat pesanan tidak bisa menghapus akun (pesan validasi, bukan error 500 dari FK).
+- **Navigasi dashboard** dirapikan: Dashboard, Pesanan, Proyek Saya, dropdown **Freelancer** (Layanan, Penawaran, Portofolio, Profil, Cari Proyek), Katalog Jasa, Panel Admin.
+
+### Hasil testing
+
+`php artisan test`: **173 passed (728 assertions)**. Isinya 144 test sebelumnya ditambah 29 test baru:
+
+- `ProposalTest` (10): kirim penawaran (input `status`/`freelancer_id` palsu diabaikan); tidak bisa menawar proyek sendiri; satu penawaran aktif; database menolak duplikat; menawar ulang setelah tarik; proyek closed/in_progress/completed ditolak; customer tanpa role freelancer ditolak; validasi; edit hanya milik sendiri dan selama pending; daftar milik sendiri.
+- `ProposalAcceptanceTest` (8): customer melihat penawaran; penerimaan membuat order dengan snapshot, komisi 10% (Rp1.234.567 → komisi Rp123.456, freelancer Rp1.111.111), riwayat, dan snapshot tetap walau proposal diubah; hanya satu bisa diterima; **service memeriksa ulang di dalam lock** untuk percobaan ganda; database menolak dua accepted; pihak lain 403; tolak satu penawaran; proyek tertutup tidak bisa menerima.
+- `OrderAccessTest` (7): akses detail hanya pihak terkait dan admin; guest diarahkan; daftar dipisah per peran; transisi status dipaksakan dan dicatat; user dengan order tidak bisa hapus akun; CHECK nominal; CHECK sumber order.
+- `CommissionCalculatorTest` (4, unit): pembagian, pembulatan dan jumlah selalu sama dengan total, validasi input.
+
+Pemeriksaan lain: Pint dan build OK; `migrate` dev (DB `creativehub`) menjalankan 2 migration.
+
+### Error dan solusinya
+
+| Masalah | Solusi |
+|---|---|
+| Test mengubah status proposal lewat `update()` tidak berefek karena `status` memang tidak fillable | Test memakai `forceFill()`; perilaku aplikasi sudah benar |
+| Closure `OrderFactory` gagal saat `proposal_id` null | Test CHECK sumber order memberi atribut eksplisit |
+| Hapus akun user yang punya order akan memicu error FK | Dicegah di `ProfileController::destroy` dengan pesan validasi |
+
+### Rencana Hari 8 — Checkout paket layanan
+
+1. Tombol "Pesan Paket" di detail layanan untuk user login (bukan pemilik layanan) dan halaman konfirmasi `/checkout/package/{package}` yang menampilkan ringkasan dari database.
+2. `OrderPlacement::orderPackage()`: hanya layanan published dengan kategori dan paket aktif, customer ≠ freelancer; snapshot judul, tier, scope, hari, revisi, dan harga; komisi dihitung server; harga dari browser diabaikan.
+3. Layanan atau paket yang sudah punya order tidak bisa dihapus (tetap bisa dinonaktifkan atau ditarik).
+4. Feature test: membeli layanan sendiri ditolak, layanan draft/paket nonaktif ditolak, manipulasi harga diabaikan, snapshot tidak berubah saat paket diedit.

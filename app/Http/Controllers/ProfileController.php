@@ -7,6 +7,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Redirect;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class ProfileController extends Controller
@@ -47,6 +48,13 @@ class ProfileController extends Controller
         ]);
 
         $user = $request->user();
+
+        // Data pesanan dan transaksi harus tetap utuh untuk laporan keuangan.
+        if ($user->customerOrders()->exists() || $user->freelancerOrders()->exists()) {
+            throw ValidationException::withMessages([
+                'password' => __('Akun yang memiliki riwayat pesanan tidak dapat dihapus. Hubungi admin untuk menonaktifkan akun.'),
+            ])->errorBag('userDeletion');
+        }
 
         Auth::logout();
 

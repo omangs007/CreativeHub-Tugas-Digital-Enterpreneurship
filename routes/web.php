@@ -6,9 +6,12 @@ use App\Http\Controllers\FreelancerActivationController;
 use App\Http\Controllers\FreelancerProfileController;
 use App\Http\Controllers\FreelancerServiceController;
 use App\Http\Controllers\HomeController;
+use App\Http\Controllers\OrderController;
 use App\Http\Controllers\PortfolioController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProjectController;
+use App\Http\Controllers\ProposalController;
+use App\Http\Controllers\ProposalDecisionController;
 use App\Http\Controllers\ServiceController;
 use Illuminate\Support\Facades\Route;
 
@@ -25,6 +28,8 @@ Route::get('/dashboard', function () {
 })->middleware(['auth', 'verified'])->name('dashboard');
 
 Route::middleware('auth')->group(function () {
+    Route::get('/dashboard/orders', [OrderController::class, 'index'])->name('orders.index');
+    Route::get('/dashboard/orders/{order}', [OrderController::class, 'show'])->name('orders.show');
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
@@ -36,6 +41,8 @@ Route::middleware(['auth', 'role:customer'])->prefix('dashboard')->group(functio
         ->except(['destroy'])
         ->names('customer.projects');
     Route::post('/projects/{project}/close', [CustomerProjectController::class, 'close'])->name('customer.projects.close');
+    Route::post('/proposals/{proposal}/accept', [ProposalDecisionController::class, 'accept'])->name('customer.proposals.accept');
+    Route::post('/proposals/{proposal}/reject', [ProposalDecisionController::class, 'reject'])->name('customer.proposals.reject');
 });
 
 Route::middleware(['auth', 'role:freelancer'])->prefix('dashboard')->group(function () {
@@ -47,6 +54,12 @@ Route::middleware(['auth', 'role:freelancer'])->prefix('dashboard')->group(funct
         ->names('freelancer.services');
     Route::post('/services/{service}/submit', [FreelancerServiceController::class, 'submit'])->name('freelancer.services.submit');
     Route::post('/services/{service}/withdraw', [FreelancerServiceController::class, 'withdraw'])->name('freelancer.services.withdraw');
+
+    Route::get('/proposals', [ProposalController::class, 'index'])->name('freelancer.proposals.index');
+    Route::post('/projects/{project}/proposals', [ProposalController::class, 'store'])->name('freelancer.proposals.store');
+    Route::get('/proposals/{proposal}/edit', [ProposalController::class, 'edit'])->name('freelancer.proposals.edit');
+    Route::patch('/proposals/{proposal}', [ProposalController::class, 'update'])->name('freelancer.proposals.update');
+    Route::post('/proposals/{proposal}/withdraw', [ProposalController::class, 'withdraw'])->name('freelancer.proposals.withdraw');
 
     Route::resource('portfolio', PortfolioController::class)
         ->except(['create', 'show'])

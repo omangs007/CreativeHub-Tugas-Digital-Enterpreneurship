@@ -64,9 +64,53 @@
                 </aside>
             </div>
 
+            @if ($project->order)
+                <p class="mx-4 rounded-md bg-violet-50 p-3 text-sm text-violet-800 sm:mx-0">
+                    {{ __('Penawaran telah diterima dan pesanan :number dibuat.', ['number' => $project->order->order_number]) }}
+                    <a href="{{ route('orders.show', $project->order) }}" class="font-semibold underline">{{ __('Lihat pesanan') }}</a>
+                </p>
+            @endif
+
             <section class="p-4 sm:p-6 bg-white shadow-sm sm:rounded-lg">
-                <h3 class="font-semibold text-gray-900">{{ __('Penawaran freelancer') }}</h3>
-                <p class="mt-2 text-sm text-gray-500">{{ __('Belum ada penawaran.') }}</p>
+                <h3 class="font-semibold text-gray-900">{{ __('Penawaran freelancer') }} ({{ $project->proposals->count() }})</h3>
+                <x-input-error class="mt-2" :messages="$errors->get('proposal')" />
+
+                @forelse ($project->proposals as $proposal)
+                    <article class="mt-4 rounded-lg border border-gray-200 p-4">
+                        <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                            <div class="flex items-center gap-3">
+                                <x-avatar :name="$proposal->freelancer->name" class="size-10" />
+                                <div>
+                                    <a href="{{ route('freelancers.show', $proposal->freelancer_id) }}" target="_blank" class="font-semibold text-gray-900 hover:text-violet-700">{{ $proposal->freelancer->name }}</a>
+                                    <p class="text-xs text-gray-500">{{ $proposal->freelancer->freelancerProfile?->headline ?? __('Freelancer CreativeHub') }}</p>
+                                </div>
+                            </div>
+                            <div class="text-sm sm:text-right">
+                                <p class="text-lg font-bold text-gray-900">@rupiah($proposal->price)</p>
+                                <p class="text-gray-500">{{ __(':days hari · :rev revisi', ['days' => $proposal->delivery_days, 'rev' => $proposal->revisions]) }}</p>
+                                <x-status-badge :status="$proposal->status" class="mt-1" />
+                            </div>
+                        </div>
+                        <p class="mt-3 whitespace-pre-line text-sm text-gray-700">{{ $proposal->message }}</p>
+
+                        @can('decide', $proposal)
+                            <div class="mt-4 flex flex-wrap gap-3">
+                                <form method="post" action="{{ route('customer.proposals.accept', $proposal) }}"
+                                      onsubmit="return confirm(@js(__('Terima penawaran dari :name seharga :price? Penawaran lain akan ditolak otomatis.', ['name' => $proposal->freelancer->name, 'price' => \App\Support\Rupiah::format($proposal->price)])))">
+                                    @csrf
+                                    <button type="submit" class="rounded-md bg-violet-600 px-4 py-2 text-sm font-semibold text-white hover:bg-violet-500">{{ __('Terima Penawaran') }}</button>
+                                </form>
+                                <form method="post" action="{{ route('customer.proposals.reject', $proposal) }}"
+                                      onsubmit="return confirm(@js(__('Tolak penawaran ini?')))">
+                                    @csrf
+                                    <button type="submit" class="rounded-md border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50">{{ __('Tolak') }}</button>
+                                </form>
+                            </div>
+                        @endcan
+                    </article>
+                @empty
+                    <p class="mt-2 text-sm text-gray-500">{{ __('Belum ada penawaran. Freelancer dapat menemukan proyek ini di halaman Proyek.') }}</p>
+                @endforelse
             </section>
         </div>
     </div>

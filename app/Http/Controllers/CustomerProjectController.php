@@ -50,7 +50,9 @@ class CustomerProjectController extends Controller
     {
         Gate::authorize('view', $project);
 
-        return view('customer.projects.show', ['project' => $project->load('category')]);
+        return view('customer.projects.show', [
+            'project' => $project->load(['category', 'order', 'proposals' => fn ($q) => $q->with('freelancer.freelancerProfile')->latest()]),
+        ]);
     }
 
     public function edit(Project $project): View

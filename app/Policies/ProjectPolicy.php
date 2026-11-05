@@ -2,6 +2,7 @@
 
 namespace App\Policies;
 
+use App\Enums\ProposalStatus;
 use App\Enums\RoleName;
 use App\Models\Project;
 use App\Models\User;
@@ -33,6 +34,20 @@ class ProjectPolicy
     public function update(User $user, Project $project): bool
     {
         return $project->customer_id === $user->id && $project->isOpen();
+    }
+
+    /**
+     * Freelancer boleh menawar proyek terbuka milik orang lain, satu penawaran aktif per proyek.
+     */
+    public function propose(User $user, Project $project): bool
+    {
+        return $user->hasRole(RoleName::Freelancer)
+            && $project->customer_id !== $user->id
+            && $project->isOpen()
+            && ! $project->proposals()
+                ->where('freelancer_id', $user->id)
+                ->whereIn('status', [ProposalStatus::Pending, ProposalStatus::Accepted])
+                ->exists();
     }
 
     public function close(User $user, Project $project): bool

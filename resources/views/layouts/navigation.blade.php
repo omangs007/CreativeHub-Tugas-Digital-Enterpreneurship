@@ -16,8 +16,8 @@
                         {{ __('Dashboard') }}
                     </x-nav-link>
 
-                    <x-nav-link :href="route('services.index')" :active="request()->routeIs('services.*')">
-                        {{ __('Katalog Jasa') }}
+                    <x-nav-link :href="route('orders.index')" :active="request()->routeIs('orders.*')">
+                        {{ __('Pesanan') }}
                     </x-nav-link>
 
                     @if (Auth::user()->hasRole(\App\Enums\RoleName::Customer))
@@ -27,18 +27,33 @@
                     @endif
 
                     @if (Auth::user()->hasRole(\App\Enums\RoleName::Freelancer))
-                        <x-nav-link :href="route('freelancer.services.index')" :active="request()->routeIs('freelancer.services.*')">
-                            {{ __('Layanan Saya') }}
-                        </x-nav-link>
-
-                        <x-nav-link :href="route('freelancer.profile.edit')" :active="request()->routeIs('freelancer.profile.*')">
-                            {{ __('Profil Freelancer') }}
-                        </x-nav-link>
-
-                        <x-nav-link :href="route('portfolio.index')" :active="request()->routeIs('portfolio.*')">
-                            {{ __('Portofolio') }}
-                        </x-nav-link>
+                        @php($freelancerActive = request()->routeIs('freelancer.*', 'portfolio.*'))
+                        <div class="flex items-center">
+                            <x-dropdown align="left" width="48">
+                                <x-slot name="trigger">
+                                    <button type="button" @class([
+                                        'inline-flex h-16 items-center gap-1 border-b-2 px-1 pt-1 text-sm font-medium leading-5 transition duration-150 ease-in-out focus:outline-hidden',
+                                        'border-indigo-400 text-gray-900' => $freelancerActive,
+                                        'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700' => ! $freelancerActive,
+                                    ])>
+                                        {{ __('Freelancer') }}
+                                        <svg class="h-4 w-4 fill-current" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
+                                    </button>
+                                </x-slot>
+                                <x-slot name="content">
+                                    <x-dropdown-link :href="route('freelancer.services.index')">{{ __('Layanan Saya') }}</x-dropdown-link>
+                                    <x-dropdown-link :href="route('freelancer.proposals.index')">{{ __('Penawaran Saya') }}</x-dropdown-link>
+                                    <x-dropdown-link :href="route('portfolio.index')">{{ __('Portofolio') }}</x-dropdown-link>
+                                    <x-dropdown-link :href="route('freelancer.profile.edit')">{{ __('Profil Freelancer') }}</x-dropdown-link>
+                                    <x-dropdown-link :href="route('projects.index')">{{ __('Cari Proyek') }}</x-dropdown-link>
+                                </x-slot>
+                            </x-dropdown>
+                        </div>
                     @endif
+
+                    <x-nav-link :href="route('services.index')" :active="request()->routeIs('services.*')">
+                        {{ __('Katalog Jasa') }}
+                    </x-nav-link>
 
                     @if (Auth::user()->isAdmin())
                         <x-nav-link :href="url('/admin')">
@@ -101,6 +116,10 @@
                 {{ __('Dashboard') }}
             </x-responsive-nav-link>
 
+            <x-responsive-nav-link :href="route('orders.index')" :active="request()->routeIs('orders.*')">
+                {{ __('Pesanan') }}
+            </x-responsive-nav-link>
+
             <x-responsive-nav-link :href="route('services.index')" :active="request()->routeIs('services.*')">
                 {{ __('Katalog Jasa') }}
             </x-responsive-nav-link>
@@ -114,6 +133,10 @@
             @if (Auth::user()->hasRole(\App\Enums\RoleName::Freelancer))
                 <x-responsive-nav-link :href="route('freelancer.services.index')" :active="request()->routeIs('freelancer.services.*')">
                     {{ __('Layanan Saya') }}
+                </x-responsive-nav-link>
+
+                <x-responsive-nav-link :href="route('freelancer.proposals.index')" :active="request()->routeIs('freelancer.proposals.*')">
+                    {{ __('Penawaran Saya') }}
                 </x-responsive-nav-link>
 
                 <x-responsive-nav-link :href="route('freelancer.profile.edit')" :active="request()->routeIs('freelancer.profile.*')">
