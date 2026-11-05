@@ -29,6 +29,7 @@
                         'revision-requested' => __('Permintaan revisi terkirim ke freelancer.'),
                         'order-completed' => __('Pesanan selesai. Terima kasih! Jangan lupa beri ulasan.'),
                         'review-created' => __('Terima kasih atas ulasan Anda.'),
+                        'order-cancelled' => __('Pesanan dibatalkan.'),
                         default => '',
                     } }}
                 </p>
@@ -218,6 +219,11 @@
                             </p>
                             @can('pay', $order)
                                 <a href="{{ route('payments.checkout', $order) }}" class="mt-4 block rounded-md bg-violet-600 px-4 py-2 text-center font-semibold text-white hover:bg-violet-500">{{ __('Bayar Sekarang') }}</a>
+                                <form method="post" action="{{ route('orders.cancel', $order) }}" class="mt-2"
+                                      onsubmit="return confirm(@js(__('Batalkan pesanan ini? Tagihan yang menunggu juga dibatalkan.')))">
+                                    @csrf
+                                    <button type="submit" class="w-full rounded-md px-4 py-2 text-center text-sm font-semibold text-red-700 hover:bg-red-50">{{ __('Batalkan Pesanan') }}</button>
+                                </form>
                             @endcan
                         </section>
                     @endif

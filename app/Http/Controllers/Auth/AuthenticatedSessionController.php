@@ -28,6 +28,12 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
+        // Jangan arahkan user non-admin ke panel admin (misalnya sisa intended URL dari sesi lain).
+        $intended = (string) $request->session()->get('url.intended', '');
+        if (str_starts_with((string) parse_url($intended, PHP_URL_PATH), '/admin') && ! $request->user()->isAdmin()) {
+            $request->session()->forget('url.intended');
+        }
+
         return redirect()->intended(route('dashboard', absolute: false));
     }
 

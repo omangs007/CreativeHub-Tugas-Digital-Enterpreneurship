@@ -3,10 +3,12 @@
 namespace App\Services;
 
 use App\Enums\OrderStatus;
+use App\Enums\PaymentStatus;
 use App\Enums\ProjectStatus;
 use App\Models\Order;
 use App\Models\OrderDelivery;
 use App\Models\OrderRevision;
+use App\Models\Payment;
 use App\Models\Project;
 use App\Models\User;
 use Illuminate\Http\UploadedFile;
@@ -105,6 +107,41 @@ class OrderWorkflow
 
             if ($order->project_id) {
                 Project::whereKey($order->project_id)->update(['status' => ProjectStatus::Completed, 'updated_at' => now()]);
+            }
+
+            return $order;
+        });
+    }
+
+    /**
+     * Customer membatalkan pesanan yang belum dibayar. Tagihan menunggu ikut dibatalkan
+     * dan proyek asal proposal ditutup.
+     *
+     * @throws ValidationException
+     */
+    public function cancelUnpaid(Order $order, User $customer): Order
+    {
+        return DB::transaction(function () use ($order, $customer) {
+            $order = $this->lock($order);
+
+            if ($order->customer_id !== $customer->id) {
+                throw ValidationException::withMessages(['order' => __('Hanya customer pemilik pesanan yang dapat membatalkan.')]);
+            }
+
+            Payment::where('order_id', $order->id)
+                ->where('status', PaymentStatus::Pending)
+                ->lockForUpdate()
+                ->get()
+                ->each(function (Payment $payment) use ($customer) {
+                    $payment->status = PaymentStatus::Cancelled;
+                    $payment->save();
+                    $payment->logEvent('cancelled_with_order', PaymentStatus::Pending, PaymentStatus::Cancelled, $customer);
+                });
+
+            $order->transitionTo(OrderStatus::Cancelled, $customer, __('Pesanan dibatalkan customer sebelum dibayar.'));
+
+            if ($order->project_id) {
+                Project::whereKey($order->project_id)->update(['status' => ProjectStatus::Closed, 'closed_at' => now(), 'updated_at' => now()]);
             }
 
             return $order;

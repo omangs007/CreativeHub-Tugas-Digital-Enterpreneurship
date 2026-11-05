@@ -64,6 +64,15 @@ class OrderWorkflowController extends Controller
         return Redirect::route('orders.show', $order)->with('status', 'order-completed');
     }
 
+    public function cancel(Request $request, Order $order, OrderWorkflow $workflow): RedirectResponse
+    {
+        Gate::authorize('pay', $order);
+
+        $workflow->cancelUnpaid($order, $request->user());
+
+        return Redirect::route('orders.show', $order)->with('status', 'order-cancelled');
+    }
+
     /**
      * File hasil hanya bisa diunduh pihak yang terlibat dalam pesanan atau admin.
      */

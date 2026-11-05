@@ -1196,3 +1196,51 @@ Pemeriksaan lain: Pint dan build OK; `migrate` dev (DB `creativehub`) menjalanka
 4. Customer dapat membatalkan pesanan yang belum dibayar (tagihan pending ikut dibatalkan).
 5. Audit akses: uji sapu bersih bahwa setiap rute dashboard menolak guest dan setiap ID milik orang lain menghasilkan 403/404 (IDOR).
 6. Perbaiki teks bahasa Inggris yang tersisa dan cek tampilan mobile halaman utama.
+
+---
+
+## Hari 16 — Keamanan dan Penyempurnaan UX
+
+**Tanggal pengerjaan:** 5 November 2026
+**Branch:** `hari-16-keamanan-ux`, di-merge ke `master`
+**Status:** Selesai
+
+### Fitur yang dikerjakan
+
+- **Redirect login:** *intended URL* yang mengarah ke `/admin…` diabaikan untuk user non-admin (bug UX dari Hari 9). Admin tetap diarahkan ke tujuan semula.
+- **Header keamanan** (middleware `SecurityHeaders`, grup web): `X-Frame-Options: SAMEORIGIN`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy` (kamera/mikrofon/lokasi dimatikan).
+- **Batalkan pesanan belum dibayar** (`OrderWorkflow::cancelUnpaid`, tombol di halaman pesanan): hanya customer pemilik selama `pending_payment`. Tagihan pending ikut dibatalkan (event `cancelled_with_order`), pesanan menjadi `cancelled`, dan proyek asal proposal ditutup.
+- **Halaman error berbahasa Indonesia** bergaya CreativeHub: 403, 404, 419, 429, 500, 503.
+- **Terjemahan paginasi** ("Menampilkan … sampai … dari … hasil", navigasi halaman).
+
+### Hasil testing
+
+`php artisan test`: **263 passed (1290 assertions)**. Isinya 255 test sebelumnya ditambah 8 test di `SecurityTest`:
+
+- **guest diarahkan ke login dari 14 halaman dashboard/admin**;
+- **uji IDOR 16 endpoint** (pesanan, checkout, pembayaran, simulasi, chat, batal, layanan, proyek, proposal, portofolio) dengan akun penyerang ber-peran customer + freelancer: semua 403/404, dan status pembayaran/pesanan tidak berubah;
+- header keamanan ada;
+- redirect login mengabaikan `/admin` untuk non-admin dan tetap berlaku untuk admin;
+- halaman error 404/403 berbahasa Indonesia;
+- batalkan pesanan belum dibayar (tagihan dibatalkan, proyek ditutup, tidak bisa dibatalkan/dibayar lagi);
+- pesanan yang sudah dibayar tidak bisa dibatalkan;
+- paginasi terjemahan Indonesia.
+
+Pemeriksaan lain: Pint dan build OK; `curl -I` ke server dev menampilkan ketiga header keamanan.
+
+### Error dan solusinya
+
+| Masalah | Solusi |
+|---|---|
+| Destructuring `[$method, $url, $data]` di test IDOR gagal untuk entri dua elemen | Test memakai `$check[2] ?? []` |
+
+### Rencana Hari 17 — Data demo, UAT, dan panduan menjalankan aplikasi
+
+1. `DemoSeeder` lengkap (data demo jelas ditandai):
+   - admin demo, 3 customer, 3 freelancer, layanan, portofolio;
+   - proyek dengan proposal;
+   - pesanan di berbagai status (menunggu bayar, dikerjakan, dikirim, selesai dengan ulasan, dibatalkan);
+   - pembayaran berhasil/pending/gagal/dibatalkan pada **tanggal berbeda** agar filter laporan bisa didemonstrasikan.
+   - Password demo acak, disimpan di file lokal di luar repo.
+2. `README.md` proyek: kebutuhan, instalasi lokal (PostgreSQL), perintah, akun demo, skenario demo dosen, dan batasan.
+3. UAT: jalankan skenario Guest, Customer, Freelancer, Admin di browser; perbaiki bug yang ditemukan.

@@ -49,6 +49,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/dashboard/orders/{order}/deliveries', [OrderWorkflowController::class, 'deliver'])->name('orders.deliver');
     Route::post('/dashboard/orders/{order}/revisions', [OrderWorkflowController::class, 'requestRevision'])->name('orders.revisions.store');
     Route::post('/dashboard/orders/{order}/complete', [OrderWorkflowController::class, 'complete'])->name('orders.complete');
+    Route::post('/dashboard/orders/{order}/cancel', [OrderWorkflowController::class, 'cancel'])->name('orders.cancel');
     Route::get('/dashboard/deliveries/{delivery}/download', [OrderWorkflowController::class, 'download'])->name('deliveries.download');
     Route::post('/dashboard/orders/{order}/review', [ReviewController::class, 'store'])->name('orders.review');
 
