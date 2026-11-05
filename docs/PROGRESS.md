@@ -1143,3 +1143,56 @@ Pemeriksaan lain: Pint dan build OK; `migrate` dev (DB `creativehub`) menjalanka
 2. **Cetak** (halaman print-friendly) dan **unduh PDF** dengan filter yang sama: periode, tanggal cetak, ringkasan, tabel, total.
 3. Satu service `FinancialReport` sebagai sumber angka untuk halaman, cetak, dan PDF.
 4. Feature test: hanya admin; batas tanggal benar (inklusif dan zona waktu); pending/gagal tidak dihitung sebagai omzet; angka halaman = PDF = database.
+
+---
+
+## Hari 15 — Laporan Keuangan Admin (Halaman, Cetak, PDF)
+
+**Tanggal pengerjaan:** 5 November 2026
+**Branch:** `hari-15-laporan-keuangan`, di-merge ke `master`
+**Status:** Selesai
+
+### Fitur yang dikerjakan
+
+- **`App\Services\FinancialReport`**: satu sumber angka untuk halaman, cetak, dan PDF.
+  - **Tanggal transaksi** = tanggal bayar untuk transaksi berhasil, tanggal dibuat untuk status lain (`COALESCE(paid_at, created_at)`). Zona Asia/Jakarta, batas **inklusif** 00:00:00–23:59:59.
+  - **Omzet terealisasi** = Σ nominal pembayaran **berhasil**. **Komisi** dan **pendapatan freelancer** = Σ snapshot pada pembayaran berhasil (selalu omzet = komisi + freelancer).
+  - Jumlah per status ditampilkan terpisah: berhasil, pending (+ nominal belum terealisasi), gagal, kedaluwarsa, dibatalkan. **Selain berhasil tidak dihitung sebagai omzet.**
+  - **Preset:** hari ini, kemarin, 7 hari terakhir (inklusif hari ini), bulan ini, bulan tertentu (`YYYY-MM`), rentang tanggal (maksimal 366 hari, akhir ≥ mulai).
+- **Halaman `/admin/financial-reports`** (Gate `viewFinancialReports`: admin aktif):
+  - Form filter (Alpine menampilkan input bulan/tanggal sesuai preset), kartu ringkasan, kalimat jumlah per status.
+  - Tabel transaksi: no. transaksi, tanggal, customer, freelancer, layanan/pesanan, metode, status, nilai, komisi, freelancer.
+  - Total di footer tabel dan keterangan simulasi.
+  - Tombol **Cetak Laporan** (print CSS A4 landscape, filter dan tombol disembunyikan) dan **Unduh PDF** dengan parameter filter yang sama.
+- **PDF `/admin/financial-reports/pdf`:** A4 landscape berisi periode, tanggal cetak dan nama admin, ringkasan, tabel, total, dan keterangan. Nama file `laporan-keuangan-YYYYMMDD-YYYYMMDD.pdf`.
+- **Menu "Laporan Keuangan"** di grup Transaksi panel Filament (NavigationItem).
+
+### Hasil testing
+
+`php artisan test`: **255 passed (1218 assertions)**. Isinya 247 test sebelumnya ditambah 8 test di `FinancialReportTest` (waktu dibekukan 15 November 2026 10:00):
+
+- hanya admin aktif (guest ke login, freelancer/customer 403, admin nonaktif dikeluarkan);
+- **ringkasan November**: 3 berhasil = Rp700.000, termasuk transaksi tepat 01-11 00:00:00, 30-11 23:59:59, dan yang *dibuat Oktober tetapi dibayar November*; transaksi 31-10 23:59:59 dan 01-12 00:00:00 dikecualikan; komisi Rp70.000 + freelancer Rp630.000 = omzet; pending, gagal, kedaluwarsa, dibatalkan masing-masing 1 dan tidak masuk omzet;
+- halaman menampilkan tabel terfilter, total yang sama, dan tautan PDF dengan filter yang sama;
+- semua preset menghasilkan rentang yang benar (termasuk Februari 2026 sampai tanggal 28);
+- batas 7 hari terakhir inklusif;
+- filter tidak valid ditolak;
+- PDF: header dan nama file benar, isi template memakai angka yang sama dengan halaman;
+- panel admin menautkan laporan.
+
+**Pemeriksaan visual PDF** (data contoh di transaksi DB yang di-rollback): omzet Rp1.400.000, komisi Rp140.000, freelancer Rp1.260.000; pending Rp75.000 dan gagal Rp250.000 tercantum tetapi tidak masuk omzet. Tidak ada data tersisa.
+
+### Error dan solusinya
+
+| Masalah | Solusi |
+|---|---|
+| Test mencari URL PDF tanpa escape, padahal `&` di HTML menjadi `&amp;` | `assertSee` memakai escape bawaan; aplikasi sudah benar |
+
+### Rencana Hari 16 — Keamanan dan penyempurnaan UX
+
+1. Perbaiki redirect setelah login: abaikan *intended URL* `/admin` untuk user non-admin.
+2. Halaman error 403/404/419/500 bergaya CreativeHub dalam Bahasa Indonesia.
+3. Header keamanan dasar (X-Frame-Options, X-Content-Type-Options, Referrer-Policy).
+4. Customer dapat membatalkan pesanan yang belum dibayar (tagihan pending ikut dibatalkan).
+5. Audit akses: uji sapu bersih bahwa setiap rute dashboard menolak guest dan setiap ID milik orang lain menghasilkan 403/404 (IDOR).
+6. Perbaiki teks bahasa Inggris yang tersisa dan cek tampilan mobile halaman utama.

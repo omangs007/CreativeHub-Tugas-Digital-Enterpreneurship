@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\FinancialReportController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\ConversationController;
@@ -92,6 +93,12 @@ Route::middleware(['auth', 'role:freelancer'])->prefix('dashboard')->group(funct
     Route::resource('portfolio', PortfolioController::class)
         ->except(['create', 'show'])
         ->parameters(['portfolio' => 'portfolioItem']);
+});
+
+// Laporan keuangan admin (halaman mandiri + PDF), dibuka dari menu panel Filament.
+Route::middleware(['auth', 'can:viewFinancialReports'])->prefix('admin/financial-reports')->group(function () {
+    Route::get('/', [FinancialReportController::class, 'index'])->name('admin.financial-reports');
+    Route::get('/pdf', [FinancialReportController::class, 'pdf'])->name('admin.financial-reports.pdf');
 });
 
 require __DIR__.'/auth.php';
