@@ -34,7 +34,7 @@
                     </div>
 
                     <div class="grid gap-4 lg:grid-cols-2">
-                        <div class="rounded-lg bg-white p-4 shadow-sm ring-1 ring-gray-100">
+                        <div class="min-w-0 rounded-lg bg-white p-4 shadow-sm ring-1 ring-gray-100">
                             <h4 class="font-semibold text-gray-900">{{ __('Perlu tindakan Anda') }}</h4>
                             @forelse ($customer['toPay']->concat($customer['toReview']) as $order)
                                 <a href="{{ route('orders.show', $order) }}" class="mt-3 flex items-center justify-between gap-3 rounded-md p-2 hover:bg-gray-50">
@@ -49,14 +49,14 @@
                             @endforelse
                         </div>
 
-                        <div class="rounded-lg bg-white p-4 shadow-sm ring-1 ring-gray-100">
+                        <div class="min-w-0 rounded-lg bg-white p-4 shadow-sm ring-1 ring-gray-100">
                             <div class="flex items-center justify-between">
                                 <h4 class="font-semibold text-gray-900">{{ __('Proyek terbuka') }}</h4>
                                 <a href="{{ route('customer.projects.index') }}" class="text-sm font-semibold text-violet-600">{{ __('Semua') }}</a>
                             </div>
                             @forelse ($customer['openProjects'] as $project)
                                 <a href="{{ route('customer.projects.show', $project) }}" class="mt-3 flex items-center justify-between gap-3 rounded-md p-2 hover:bg-gray-50">
-                                    <span class="truncate text-sm font-semibold text-gray-900">{{ $project->title }}</span>
+                                    <span class="min-w-0 truncate text-sm font-semibold text-gray-900">{{ $project->title }}</span>
                                     <span class="shrink-0 text-xs font-semibold text-violet-700">{{ trans_choice('{0} Belum ada penawaran|[1,*] :count penawaran baru', $project->pending_proposals_count, ['count' => $project->pending_proposals_count]) }}</span>
                                 </a>
                             @empty
@@ -66,7 +66,7 @@
                     </div>
 
                     @if ($customer['recentPayments']->isNotEmpty())
-                        <div class="rounded-lg bg-white p-4 shadow-sm ring-1 ring-gray-100">
+                        <div class="min-w-0 rounded-lg bg-white p-4 shadow-sm ring-1 ring-gray-100">
                             <h4 class="font-semibold text-gray-900">{{ __('Pembayaran terbaru') }}</h4>
                             <ul class="mt-3 divide-y divide-gray-100 text-sm">
                                 @foreach ($customer['recentPayments'] as $payment)
@@ -102,7 +102,7 @@
                             :hint="__(':n menunggu review', ['n' => $freelancer['serviceCounts'][\App\Enums\ServiceStatus::PendingReview->value] ?? 0])" :href="route('freelancer.services.index')" />
                     </div>
 
-                    <div class="rounded-lg bg-white p-4 shadow-sm ring-1 ring-gray-100">
+                    <div class="min-w-0 rounded-lg bg-white p-4 shadow-sm ring-1 ring-gray-100">
                         <h4 class="font-semibold text-gray-900">{{ __('Pesanan yang perlu dikirim') }}</h4>
                         @forelse ($freelancer['toDeliver'] as $order)
                             <a href="{{ route('orders.show', $order) }}#pengerjaan" class="mt-3 flex items-center justify-between gap-3 rounded-md p-2 hover:bg-gray-50">

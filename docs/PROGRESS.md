@@ -1383,3 +1383,32 @@ Pemeriksaan lain: Pint dan build OK; `migrate` dev (DB `creativehub`) menjalanka
 - omzet harian (hari kosong = 0, transaksi gagal tidak dihitung), widget grafik, dan kartu omzet di dasbor.
 
 **Browser:** dasbor admin (akun sementara, dihapus setelahnya) menampilkan Omzet bulan ini Rp1.275.000 dan grafik 30 hari sesuai data demo.
+
+---
+
+## Hari 20 — Audit Mobile dan Aksesibilitas
+
+**Tanggal pengerjaan:** 5 November 2026
+**Branch:** `hari-20-mobile-a11y`, di-merge ke `master`
+**Status:** Selesai
+
+### Metode
+
+Skrip Playwright membuka **24 halaman** (publik dan dashboard, login sebagai user sementara ber-peran customer + freelancer yang punya pesanan dan chat) pada **lebar 375px**. Setiap halaman diperiksa: status HTTP, horizontal overflow (dengan mengabaikan elemen yang sengaja dipotong `overflow-hidden`), gambar tanpa `alt`, input tanpa label, serta tautan/tombol tanpa nama yang terbaca screen reader.
+
+### Temuan dan perbaikan
+
+| Temuan | Perbaikan |
+|---|---|
+| Tautan logo dan tombol hamburger di navigasi dashboard (Breeze) tanpa nama aksesibel | `aria-label="Beranda CreativeHub"`, `aria-label="Buka menu navigasi"` + `:aria-expanded`, `type="button"` |
+| `/dashboard` overflow 14px: item grid melebar mengikuti teks panjang | `min-w-0` pada kartu grid dan judul proyek yang di-truncate |
+| `/profile` overflow 5px dari input file foto profil | Form `min-w-0 flex-1`, input `w-full min-w-0` |
+| **Bug chat:** tab chat lama melakukan polling **tanpa henti** setelah sesi tidak sah (183 request 401/404 tercatat) | Polling berhenti pada 401/403/404/419 dan menampilkan "Sesi berakhir. Muat ulang halaman…"; polling dijeda saat tab tidak terlihat (`document.hidden`) |
+
+Seluruh halaman publik sudah bersih sejak awal.
+
+### Verifikasi
+
+- Audit ulang 17 halaman utama: **0 masalah**. Menu hamburger mobile berfungsi (`aria-expanded=true`, tautan Notifikasi tampil).
+- Polling chat: setelah cookie sesi dihapus, hanya **1** request gagal dalam 13 detik lalu polling berhenti dan pesan tampil.
+- `php artisan test`: 277 passed; Pint dan build OK. Data audit sementara dihapus (dev: 7 user, 7 pesanan demo).

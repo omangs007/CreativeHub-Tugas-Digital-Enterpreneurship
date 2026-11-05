@@ -7,11 +7,11 @@
     <div class="mt-6 flex flex-wrap items-center gap-6">
         <x-avatar :user="$user" class="size-20 text-2xl" />
 
-        <form method="post" action="{{ route('profile.avatar.update') }}" enctype="multipart/form-data" class="flex flex-wrap items-center gap-3">
+        <form method="post" action="{{ route('profile.avatar.update') }}" enctype="multipart/form-data" class="flex min-w-0 flex-1 flex-wrap items-center gap-3">
             @csrf
             <label for="avatar" class="sr-only">{{ __('Pilih foto') }}</label>
             <input id="avatar" name="avatar" type="file" accept="image/jpeg,image/png,image/webp" required
-                class="block text-sm text-gray-700 file:mr-3 file:rounded-md file:border-0 file:bg-gray-800 file:px-4 file:py-2 file:text-xs file:font-semibold file:uppercase file:tracking-widest file:text-white hover:file:bg-gray-700">
+                class="block w-full min-w-0 text-sm text-gray-700 file:mr-3 file:rounded-md file:border-0 file:bg-gray-800 file:px-4 file:py-2 file:text-xs file:font-semibold file:uppercase file:tracking-widest file:text-white hover:file:bg-gray-700">
             <x-primary-button>{{ __('Unggah') }}</x-primary-button>
         </form>
 

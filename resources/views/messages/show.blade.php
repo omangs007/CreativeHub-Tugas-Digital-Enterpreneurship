@@ -80,11 +80,21 @@
                         this.$nextTick(() => this.scrollToEnd());
                     }
                 },
+                stop(message) {
+                    clearInterval(this.timer);
+                    this.timer = null;
+                    this.error = message;
+                },
                 async poll() {
+                    // Hemat beban server: jangan polling saat tab tidak terlihat.
+                    if (document.hidden) return;
                     try {
                         const response = await fetch(`${pollUrl}?after=${this.lastId()}`, { headers: { Accept: 'application/json' } });
                         if (response.ok) {
                             this.append((await response.json()).messages);
+                        } else if ([401, 403, 404, 419].includes(response.status)) {
+                            // Sesi berakhir atau akses dicabut: hentikan polling agar tidak mengulang request gagal.
+                            this.stop(@js(__('Sesi berakhir. Muat ulang halaman untuk melanjutkan chat.')));
                         }
                     } catch (e) {
                         // Koneksi terputus sementara; polling berikutnya akan mencoba lagi.
