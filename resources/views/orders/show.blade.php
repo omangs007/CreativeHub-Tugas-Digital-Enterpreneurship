@@ -204,9 +204,20 @@
                             @if ($isCustomer)
                                 <div class="flex justify-between gap-4 text-base"><dt class="font-semibold">{{ __('Total') }}</dt><dd class="font-bold">@rupiah($order->total_amount)</dd></div>
                             @else
-                                <div class="flex justify-between gap-4"><dt class="text-gray-500">{{ __('Nilai pesanan') }}</dt><dd>@rupiah($order->total_amount)</dd></div>
-                                <div class="flex justify-between gap-4"><dt class="text-gray-500">{{ __('Komisi marketplace') }}</dt><dd>- @rupiah($order->commission_amount)</dd></div>
-                                <div class="flex justify-between gap-4 text-base"><dt class="font-semibold">{{ __('Bagian Anda') }}</dt><dd class="font-bold">@rupiah($order->freelancer_amount)</dd></div>
+                                @php($escrow = $order->escrowState())
+                                <div class="flex justify-between gap-4 text-base"><dt class="font-semibold">{{ __('Nilai pesanan') }}</dt><dd class="font-bold">@rupiah($order->total_amount)</dd></div>
+                                <div class="flex justify-between gap-4">
+                                    <dt class="text-gray-500">{{ __('Status dana') }}</dt>
+                                    <dd class="text-right font-semibold {{ match ($escrow) { 'released' => 'text-emerald-700', 'held' => 'text-amber-700', default => 'text-gray-500' } }}">
+                                        {{ match ($escrow) { 'released' => __('Masuk saldo tersedia'), 'held' => __('Tertahan (escrow)'), default => __('Belum dibayar') } }}
+                                    </dd>
+                                </div>
+                                <p class="text-xs text-gray-500">
+                                    {{ __('Dana masuk saldo tersedia setelah customer menyetujui hasil. Komisi platform :rate dipotong saat penarikan saldo.', ['rate' => \App\Filament\Pages\CommissionSettings::formatPercent(\App\Support\CommissionCalculator::currentRateBps())]) }}
+                                    @if ($order->freelancer_id === auth()->id())
+                                        <a href="{{ route('freelancer.wallet') }}" class="font-semibold text-violet-700 hover:underline">{{ __('Lihat saldo') }}</a>
+                                    @endif
+                                </p>
                             @endif
                         </dl>
                     </section>

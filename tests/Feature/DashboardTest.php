@@ -54,21 +54,24 @@ class DashboardTest extends TestCase
         Proposal::factory()->for($freelancer, 'freelancer')->create();
         Proposal::factory()->for($freelancer, 'freelancer')->status(ProposalStatus::Rejected)->create();
 
+        // Saldo dompet berasal dari escrow pembayaran terverifikasi (lihat WalletTest);
+        // order factory tanpa pembayaran tidak menghasilkan saldo.
         $this->actingAs($freelancer)->get('/dashboard')
             ->assertOk()
             ->assertSee('Sebagai freelancer')
-            ->assertSee('Rp900.000')   // selesai: 1.000.000 - 10%
-            ->assertSee('Rp450.000')   // dalam pengerjaan: 500.000 - 10%
-            ->assertSee('Map Untuk Dikirim')
-            ->assertDontSee('Rp8.100.000');
+            ->assertSee('Saldo tersedia')
+            ->assertSee('Saldo tertahan')
+            ->assertSee('Map Untuk Dikirim');
 
+        // Nilai pesanan dihitung penuh; komisi baru dipotong saat penarikan.
         $this->actingAs($freelancer)->get('/dashboard/earnings')
             ->assertOk()
-            ->assertSee('Rp900.000')
-            ->assertSee('Rp450.000')
-            ->assertSee('Rp150.000')   // komisi dari pesanan berbayar: 100.000 + 50.000
+            ->assertSee('Rp1.000.000')
+            ->assertSee('Rp500.000')
             ->assertSee('pencatatan simulasi')
-            ->assertDontSee('Rp270.000');
+            ->assertSee('Komisi platform dipotong saat penarikan saldo')
+            ->assertDontSee('Rp900.000')
+            ->assertDontSee('Rp9.000.000');
     }
 
     public function test_user_with_both_roles_sees_both_sections(): void

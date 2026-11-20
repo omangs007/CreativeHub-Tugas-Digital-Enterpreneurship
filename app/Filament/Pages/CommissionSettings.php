@@ -49,23 +49,23 @@ class CommissionSettings extends Page
     {
         return $schema->components([
             Section::make('Komisi marketplace')
-                ->description('Komisi dipotong dari nilai pesanan sebagai pencatatan simulasi (bukan payout uang sungguhan).')
+                ->description('Komisi platform dipotong saat freelancer menarik saldo (bukan saat pembayaran), dan hanya sekali per penarikan. Pencatatan simulasi, bukan payout uang sungguhan.')
                 ->schema([
                     TextEntry::make('current')
-                        ->label('Komisi berlaku untuk pesanan baru')
+                        ->label('Komisi berlaku untuk penarikan baru')
                         ->state(fn () => self::formatPercent(CommissionCalculator::currentRateBps()))
                         ->size('lg')
                         ->weight('bold'),
                     TextEntry::make('example')
-                        ->label('Contoh pesanan Rp500.000')
+                        ->label('Contoh penarikan Rp500.000')
                         ->state(function () {
                             $split = CommissionCalculator::split(500_000);
 
-                            return 'Komisi '.Rupiah::format($split['commission']).' · Freelancer '.Rupiah::format($split['freelancer']);
+                            return 'Komisi '.Rupiah::format($split['commission']).' · Diterima freelancer '.Rupiah::format($split['freelancer']);
                         }),
                     TextEntry::make('note')
                         ->hiddenLabel()
-                        ->state('Pesanan lama tetap memakai komisi yang tersimpan saat pesanan dibuat.'),
+                        ->state('Penarikan yang sudah diajukan tetap memakai komisi yang tersimpan saat pengajuan. Dana pesanan masuk saldo freelancer secara penuh.'),
                 ]),
         ]);
     }

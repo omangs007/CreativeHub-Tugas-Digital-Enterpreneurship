@@ -20,7 +20,10 @@ use Illuminate\Validation\ValidationException;
  */
 class PaymentProcessor
 {
-    public function __construct(private readonly PaymentGateway $gateway) {}
+    public function __construct(
+        private readonly PaymentGateway $gateway,
+        private readonly Wallet $wallet,
+    ) {}
 
     /**
      * Membuat tagihan baru untuk order. Tagihan menunggu sebelumnya dibatalkan
@@ -159,6 +162,9 @@ class PaymentProcessor
         $payment->logEvent('simulated_success', PaymentStatus::Pending, PaymentStatus::Success, $actor, ['amount' => $payment->amount]);
 
         $order->transitionTo(OrderStatus::Paid, $actor, __('Pembayaran :code berhasil (simulasi).', ['code' => $payment->transaction_code]));
+
+        // Pembayaran sudah terverifikasi (status berhasil + nominal cocok): dana masuk escrow.
+        $this->wallet->holdForOrder($order);
         $order->transitionTo(OrderStatus::InProgress, null, __('Freelancer dapat mulai mengerjakan pesanan.'));
 
         ActivityNotification::send(

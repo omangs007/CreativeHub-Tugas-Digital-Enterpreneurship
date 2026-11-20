@@ -10,6 +10,7 @@ use App\Enums\RoleName;
 use App\Models\Order;
 use App\Models\Payment;
 use App\Models\User;
+use App\Services\Wallet;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -73,22 +74,23 @@ class DashboardController extends Controller
     }
 
     /**
-     * Ringkasan pendapatan freelancer (pencatatan simulasi, bukan payout).
+     * Ringkasan pendapatan freelancer (pencatatan simulasi). Nilai pesanan dihitung penuh;
+     * komisi platform dipotong saat penarikan saldo (lihat App\Services\Wallet).
      *
-     * @return array{completed: int, in_progress: int, commission: int, completed_count: int}
+     * @return array{completed: int, in_progress: int, completed_count: int, available: int, held: int}
      */
     public static function earningsSummary(User $user): array
     {
         $completed = $user->freelancerOrders()->where('status', OrderStatus::Completed);
         $active = $user->freelancerOrders()->whereIn('status', self::ACTIVE_PAID);
+        $wallet = app(Wallet::class)->walletFor($user);
 
         return [
-            'completed' => (int) (clone $completed)->sum('freelancer_amount'),
+            'completed' => (int) (clone $completed)->sum('total_amount'),
             'completed_count' => (clone $completed)->count(),
-            'in_progress' => (int) $active->sum('freelancer_amount'),
-            'commission' => (int) $user->freelancerOrders()
-                ->whereIn('status', [...self::ACTIVE_PAID, OrderStatus::Completed])
-                ->sum('commission_amount'),
+            'in_progress' => (int) $active->sum('total_amount'),
+            'available' => $wallet->available_balance,
+            'held' => $wallet->held_balance,
         ];
     }
 

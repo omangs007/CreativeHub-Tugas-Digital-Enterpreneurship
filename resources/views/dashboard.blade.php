@@ -95,8 +95,8 @@
 
                     @php($e = $freelancer['earnings'])
                     <div class="grid grid-cols-2 gap-4 lg:grid-cols-4">
-                        <x-stat-card :label="__('Pendapatan selesai')" :value="\App\Support\Rupiah::format($e['completed'])" :hint="trans_choice('{0} belum ada pesanan selesai|[1,*] dari :count pesanan selesai', $e['completed_count'], ['count' => $e['completed_count']])" :href="route('freelancer.earnings')" />
-                        <x-stat-card :label="__('Dalam pengerjaan')" :value="\App\Support\Rupiah::format($e['in_progress'])" :hint="__('sudah dibayar, belum selesai')" :href="route('freelancer.earnings')" />
+                        <x-stat-card :label="__('Saldo tersedia')" :value="\App\Support\Rupiah::format($e['available'])" :hint="trans_choice('{0} belum ada pesanan selesai|[1,*] dari :count pesanan selesai', $e['completed_count'], ['count' => $e['completed_count']])" :href="route('freelancer.wallet')" />
+                        <x-stat-card :label="__('Saldo tertahan')" :value="\App\Support\Rupiah::format($e['held'])" :hint="__('escrow pesanan yang belum disetujui')" :href="route('freelancer.wallet')" />
                         <x-stat-card :label="__('Penawaran menunggu')" :value="$freelancer['pendingProposals']" :href="route('freelancer.proposals.index')" />
                         <x-stat-card :label="__('Layanan tayang')" :value="$freelancer['serviceCounts'][\App\Enums\ServiceStatus::Published->value] ?? 0"
                             :hint="__(':n menunggu review', ['n' => $freelancer['serviceCounts'][\App\Enums\ServiceStatus::PendingReview->value] ?? 0])" :href="route('freelancer.services.index')" />

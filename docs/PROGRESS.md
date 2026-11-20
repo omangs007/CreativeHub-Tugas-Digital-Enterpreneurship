@@ -1504,3 +1504,29 @@ php artisan test: 285 passed (1439 assertions). 8 test baru di AdminUserManageme
 2. Opsional: naikkan batas gambar portofolio/thumbnail (saat ini 2 MB) dengan pengecilan otomatis seperti foto profil.
 3. Opsional: dokumen laporan tugas (ERD, use case, diagram alur), notifikasi email, atau adapter Midtrans Sandbox.
 4. Tindak lanjut masukan dosen.
+
+## Tambahan — Escrow, Saldo Freelancer, dan Komisi Penarikan 10% (21 November 2026)
+
+### Alur dana
+
+Customer membayar → pembayaran terverifikasi (status berhasil + nominal = total pesanan) → dana masuk **saldo tertahan (escrow)** → freelancer mengerjakan / revisi (dana tetap tertahan) → customer menyetujui → dana masuk **saldo tersedia** → freelancer menarik saldo → **komisi platform dipotong sekali saat penarikan** → admin memproses dan mengonfirmasi transfer.
+
+Contoh: bayar Rp1.000.000 → escrow Rp1.000.000 → disetujui → tersedia Rp1.000.000 → tarik Rp1.000.000 → komisi Rp100.000 → diterima Rp900.000.
+
+### Yang ditambahkan
+
+- Tabel `freelancer_wallets`, `wallet_transactions` (ledger append-only), `withdrawals`. CHECK saldo ≥ 0, `amount = commission + net`, unique index `(order_id, type)` / `(withdrawal_id, type)` mencegah pencatatan ganda. Migrasi mem-backfill pesanan berbayar yang sudah ada.
+- `App\Services\Wallet`: hold escrow (dipanggil `PaymentProcessor` saat sukses), release (dipanggil `OrderWorkflow::complete`), pengajuan penarikan, proses/konfirmasi/tolak oleh admin. Semua dalam transaksi dengan baris terkunci; penolakan mengembalikan saldo utuh.
+- Halaman freelancer **Saldo Saya** (`/dashboard/wallet`): saldo tersedia/tertahan, dana tertahan per pesanan, riwayat penarikan, riwayat transaksi, form penarikan dengan rincian komisi langsung, lalu halaman konfirmasi (token sekali pakai, anti kirim ganda).
+- Panel admin **Transaksi → Penarikan Saldo**: Proses Transfer → Konfirmasi Berhasil (wajib nomor referensi transfer) atau Tolak/Gagal (alasan wajib). Widget ringkasan pendapatan komisi penarikan, dana escrow, dan saldo tersedia. Semua aksi diaudit dan dinotifikasikan ke freelancer.
+- Persentase komisi tetap diatur di **Pengaturan Komisi** (default 10%) dan kini berlaku saat penarikan (di-snapshot per penarikan).
+
+### Penyesuaian fitur lama (agar komisi tidak terpotong ganda)
+
+- Halaman pesanan (sisi freelancer), Pendapatan, dan kartu dashboard freelancer kini menampilkan nilai pesanan penuh + status dana (tertahan/tersedia), bukan "Komisi marketplace / Bagian Anda" per pesanan.
+- Kolom komisi pada `orders`/`payments` tetap ada (snapshot historis; dipakai struk dan laporan keuangan lama) tetapi tidak dipakai untuk menghitung saldo.
+
+### Hasil testing
+
+- `tests/Feature/WalletTest.php` (14 test): escrow hanya setelah pembayaran terverifikasi, tidak ganda, tetap tertahan saat revisi, cair saat disetujui, saldo tertahan tidak bisa ditarik, rincian 10%, token konfirmasi sekali pakai, batas saldo, alur admin, refund penolakan, akses per peran, backfill idempoten.
+- Status: **302 test lulus**.

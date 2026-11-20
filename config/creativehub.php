@@ -17,6 +17,18 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Penarikan saldo freelancer
+    |--------------------------------------------------------------------------
+    |
+    | Komisi platform (persentase di atas) dipotong SAAT PENARIKAN, bukan saat
+    | pembayaran. Nominal minimal penarikan dalam Rupiah.
+    |
+    */
+
+    'withdrawal_min_amount' => (int) env('CREATIVEHUB_WITHDRAWAL_MIN', 10000),
+
+    /*
+    |--------------------------------------------------------------------------
     | Upload hasil pekerjaan
     |--------------------------------------------------------------------------
     |

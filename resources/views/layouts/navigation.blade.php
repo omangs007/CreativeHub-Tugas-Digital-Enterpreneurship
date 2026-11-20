@@ -47,6 +47,7 @@
                                 <x-slot name="content">
                                     <x-dropdown-link :href="route('freelancer.services.index')">{{ __('Layanan Saya') }}</x-dropdown-link>
                                     <x-dropdown-link :href="route('freelancer.proposals.index')">{{ __('Penawaran Saya') }}</x-dropdown-link>
+                                    <x-dropdown-link :href="route('freelancer.wallet')">{{ __('Saldo Saya') }}</x-dropdown-link>
                                     <x-dropdown-link :href="route('freelancer.earnings')">{{ __('Pendapatan') }}</x-dropdown-link>
                                     <x-dropdown-link :href="route('portfolio.index')">{{ __('Portofolio') }}</x-dropdown-link>
                                     <x-dropdown-link :href="route('freelancer.profile.edit')">{{ __('Profil Freelancer') }}</x-dropdown-link>
@@ -161,6 +162,10 @@
 
                 <x-responsive-nav-link :href="route('freelancer.proposals.index')" :active="request()->routeIs('freelancer.proposals.*')">
                     {{ __('Penawaran Saya') }}
+                </x-responsive-nav-link>
+
+                <x-responsive-nav-link :href="route('freelancer.wallet')" :active="request()->routeIs('freelancer.wallet', 'freelancer.withdrawals.*')">
+                    {{ __('Saldo Saya') }}
                 </x-responsive-nav-link>
 
                 <x-responsive-nav-link :href="route('freelancer.profile.edit')" :active="request()->routeIs('freelancer.profile.*')">

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\OrderStatus;
 use App\Enums\PaymentStatus;
+use App\Enums\WalletTransactionType;
 use Database\Factories\OrderFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -106,6 +107,28 @@ class Order extends Model
     public function revisions(): HasMany
     {
         return $this->hasMany(OrderRevision::class);
+    }
+
+    public function walletTransactions(): HasMany
+    {
+        return $this->hasMany(WalletTransaction::class);
+    }
+
+    /**
+     * Status dana pesanan bagi freelancer: 'held' (tertahan di escrow), 'released'
+     * (sudah masuk saldo tersedia), atau null (belum ada dana terverifikasi).
+     */
+    public function escrowState(): ?string
+    {
+        $types = $this->relationLoaded('walletTransactions')
+            ? $this->walletTransactions->pluck('type')
+            : $this->walletTransactions()->pluck('type');
+
+        return match (true) {
+            $types->contains(WalletTransactionType::EscrowRelease) => 'released',
+            $types->contains(WalletTransactionType::EscrowHold) => 'held',
+            default => null,
+        };
     }
 
     public function revisionsRemaining(): int

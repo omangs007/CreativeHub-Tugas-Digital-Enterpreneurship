@@ -20,7 +20,7 @@ class OrderAccessTest extends TestCase
         $order = Order::factory()->create();
 
         $this->actingAs($order->customer)->get("/dashboard/orders/{$order->id}")->assertOk()->assertSee($order->order_number);
-        $this->actingAs($order->freelancer)->get("/dashboard/orders/{$order->id}")->assertOk()->assertSee('Bagian Anda');
+        $this->actingAs($order->freelancer)->get("/dashboard/orders/{$order->id}")->assertOk()->assertSee('Status dana');
         $this->actingAs(User::factory()->admin()->create())->get("/dashboard/orders/{$order->id}")->assertOk();
 
         $this->actingAs(User::factory()->customer()->create())->get("/dashboard/orders/{$order->id}")->assertForbidden();

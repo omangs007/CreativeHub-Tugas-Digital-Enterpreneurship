@@ -12,6 +12,7 @@ use App\Models\Payment;
 use App\Models\Project;
 use App\Models\User;
 use App\Notifications\ActivityNotification;
+use App\Support\Rupiah;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -25,6 +26,8 @@ use Throwable;
  */
 class OrderWorkflow
 {
+    public function __construct(private readonly Wallet $wallet) {}
+
     /**
      * @throws ValidationException
      */
@@ -114,8 +117,13 @@ class OrderWorkflow
 
             $order->transitionTo(OrderStatus::Completed, $customer, __('Pesanan diselesaikan oleh customer.'));
 
+            // Customer menyetujui hasil: escrow dicairkan ke saldo tersedia freelancer.
+            $released = $this->wallet->releaseForOrder($order);
+
             ActivityNotification::send($order->freelancer, __('Pesanan selesai'),
-                __(':title telah diselesaikan customer. Pendapatan Anda tercatat.', ['title' => $order->title]),
+                $released
+                    ? __(':title telah diselesaikan customer. Dana :amount masuk saldo tersedia dan dapat ditarik.', ['title' => $order->title, 'amount' => Rupiah::format($released->amount)])
+                    : __(':title telah diselesaikan customer. Pendapatan Anda tercatat.', ['title' => $order->title]),
                 'orders.show', $order);
 
             if ($order->project_id) {

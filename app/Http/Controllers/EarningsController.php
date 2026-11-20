@@ -18,7 +18,7 @@ class EarningsController extends Controller
 
         $orders = $user->freelancerOrders()
             ->whereIn('status', [...DashboardController::ACTIVE_PAID, OrderStatus::Completed])
-            ->with('customer')
+            ->with(['customer', 'walletTransactions'])
             ->latest('paid_at')
             ->paginate(20);
 

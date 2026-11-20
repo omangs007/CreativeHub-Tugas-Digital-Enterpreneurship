@@ -24,6 +24,7 @@ use App\Http\Controllers\ProposalDecisionController;
 use App\Http\Controllers\ReceiptController;
 use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\ServiceController;
+use App\Http\Controllers\WalletController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', HomeController::class)->name('home');
@@ -93,6 +94,9 @@ Route::middleware(['auth', 'role:freelancer'])->prefix('dashboard')->group(funct
     Route::post('/services/{service}/withdraw', [FreelancerServiceController::class, 'withdraw'])->name('freelancer.services.withdraw');
 
     Route::get('/earnings', EarningsController::class)->name('freelancer.earnings');
+    Route::get('/wallet', [WalletController::class, 'index'])->name('freelancer.wallet');
+    Route::post('/wallet/withdrawals/preview', [WalletController::class, 'preview'])->middleware('throttle:30,1')->name('freelancer.withdrawals.preview');
+    Route::post('/wallet/withdrawals', [WalletController::class, 'store'])->middleware('throttle:10,1')->name('freelancer.withdrawals.store');
     Route::get('/proposals', [ProposalController::class, 'index'])->name('freelancer.proposals.index');
     Route::post('/projects/{project}/proposals', [ProposalController::class, 'store'])->name('freelancer.proposals.store');
     Route::get('/proposals/{proposal}/edit', [ProposalController::class, 'edit'])->name('freelancer.proposals.edit');
